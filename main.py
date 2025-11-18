@@ -12,5 +12,5 @@ async def lifespan(app: FastAPI):
     pass
 
 
-app = FastAPI(lifespan=lifespan, title="FastAPI + Beanie + uv")
-app.include_router(dataset_router, prefix="/api/v1/datasets", tags=["Datasets"])
+app = FastAPI(lifespan=lifespan, title="Knowledge Hub V3")
+app.include_router(dataset_router, prefix="/api/v3/knowledge_hub/datasets", tags=["Datasets"])
