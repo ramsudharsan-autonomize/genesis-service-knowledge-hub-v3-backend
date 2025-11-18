@@ -6,7 +6,7 @@ from fastapi import status
 
 from app.schemas.dataset import DatasetCreateRequest, DatasetResponse, DatasetUpdateRequest
 from app.services.dataset_service import DatasetService
-from app.models.dataset import DatasetStatus
+from app.models import DatasetStatus
 from app.utils.error_handler import handle_exception
 from app.utils.response_mapper import get_dataset_response
 

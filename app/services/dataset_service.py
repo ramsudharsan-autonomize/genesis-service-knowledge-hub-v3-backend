@@ -28,6 +28,7 @@ class DatasetService:
         """
         # Check for duplicate name
         existing = await Dataset.find_one(Dataset.name == data.name)
+
         if existing:
             raise DatasetAlreadyExistsException(data.name)
 
@@ -36,9 +37,6 @@ class DatasetService:
             name=data.name,
             description=data.description,
             tags=data.tags or [],
-            status=DatasetStatus.ACTIVE,
-            created_at=datetime.now(timezone.utc),
-            updated_at=datetime.now(timezone.utc),
         )
 
         await dataset.insert()
@@ -110,6 +108,7 @@ class DatasetService:
         # Check for name conflict if name is being updated
         if data.name and data.name != dataset.name:
             existing = await Dataset.find_one(Dataset.name == data.name)
+
             if existing:
                 raise DatasetAlreadyExistsException(data.name)
 
