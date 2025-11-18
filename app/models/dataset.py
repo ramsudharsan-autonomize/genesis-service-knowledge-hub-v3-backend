@@ -22,5 +22,4 @@ class Dataset(Document):
         use_enum_values = True
 
     class Config:
-        populate_by_name = True
         json_encoders = {PydanticObjectId: str, datetime: lambda v: v.isoformat()}

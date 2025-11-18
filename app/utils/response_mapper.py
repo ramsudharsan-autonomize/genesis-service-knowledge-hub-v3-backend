@@ -7,13 +7,13 @@ from app.schemas.dataset import DatasetResponse
 def get_dataset_response(dataset: Dataset) -> DatasetResponse:
     """Convert Dataset model to DatasetResponse schema"""
     return DatasetResponse(
-        _id=str(dataset.id),
+        id=str(dataset.id),
         name=dataset.name,
         description=dataset.description,
         tags=dataset.tags,
         status=dataset.status,
-        createdAt=dataset.created_at,
-        updatedAt=dataset.updated_at,
-        dataSourceId=str(dataset.data_source_id) if dataset.data_source_id else None,
-        pipelineIds=[str(pid) for pid in dataset.pipeline_ids],
+        created_at=dataset.created_at,
+        updated_at=dataset.updated_at,
+        data_source_id=str(dataset.data_source_id) if dataset.data_source_id else None,
+        pipeline_ids=[str(pid) for pid in dataset.pipeline_ids],
     )

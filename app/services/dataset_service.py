@@ -156,20 +156,3 @@ class DatasetService:
             await dataset.delete()
             return dataset
 
-    @staticmethod
-    async def count_datasets(status: DatasetStatus | None = None) -> int:
-        """
-        Count datasets with optional status filter
-
-        Args:
-            status: Filter by status (optional)
-
-        Returns:
-            Count of datasets
-        """
-        query = Dataset.find()
-
-        if status:
-            query = query.find(Dataset.status == status)
-
-        return await query.count()

@@ -1,7 +1,6 @@
 """Dataset API router with CRUD operations"""
 
-from fastapi import APIRouter, Query
-from fastapi.responses import JSONResponse
+from fastapi import APIRouter, Query, Response
 from fastapi import status
 
 from app.schemas.dataset import DatasetCreateRequest, DatasetResponse, DatasetUpdateRequest
@@ -114,6 +113,6 @@ async def delete_dataset(
     """
     try:
         await DatasetService.delete_dataset(dataset_id, soft_delete=not permanent)
-        return JSONResponse(status_code=status.HTTP_204_NO_CONTENT, content=None)
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         handle_exception(e, "deleting the dataset")
