@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.core.database import init_db
-from app.routes import hello_router
+from app.routes import dataset_router
 
 
 @asynccontextmanager
@@ -13,4 +13,4 @@ async def lifespan(app: FastAPI):
 
 
 app = FastAPI(lifespan=lifespan, title="FastAPI + Beanie + uv")
-app.include_router(hello_router, prefix="/hello", tags=["Hello"])
+app.include_router(dataset_router, prefix="/api/v1/datasets", tags=["Datasets"])
