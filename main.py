@@ -6,7 +6,6 @@ from app.routes import hello_router
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # Startup: Connect to DB and init mappings
     await init_db()
     yield
     # Shutdown: Connection closes automatically by Motor's cleanup
