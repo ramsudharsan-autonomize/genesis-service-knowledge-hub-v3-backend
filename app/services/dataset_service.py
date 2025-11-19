@@ -155,4 +155,29 @@ class DatasetService:
             # Hard delete - permanently remove
             await dataset.delete()
             return dataset
+        
+    @staticmethod
+    async def add_pipeline_to_dataset(dataset_id: str, pipeline_id: str) -> Dataset:
+        """
+        Add a pipeline to the dataset's pipeline list
+
+        Args:
+            dataset_id: Dataset ID
+            pipeline_id: Pipeline ID to add
+
+        Returns:
+            Updated dataset document
+
+        Raises:
+            DatasetNotFoundException: If dataset not found
+        """
+        dataset = await DatasetService.get_dataset_by_id(dataset_id)
+        pipeline_id = PydanticObjectId(pipeline_id)
+        
+        if pipeline_id not in dataset.pipeline_ids:
+            dataset.pipeline_ids.append(pipeline_id)
+            dataset.updated_at = datetime.now(timezone.utc)
+            await dataset.save()
+
+        return dataset
 

@@ -31,6 +31,28 @@ class DatasetCreateRequest(BaseModel):
     )
 
 
+class DatasetUpdateRequest(BaseModel):
+    """Request schema for updating a dataset"""
+
+    name: NonEmptyStr | None = Field(None, min_length=1, max_length=200)
+    description: NonEmptyStr | None = Field(None, min_length=1, max_length=1000)
+    tags: CleanTags | None = None
+
+
+class DatasetAddPipelineRequest(BaseModel):
+    """Request schema for adding a pipeline to a dataset"""
+
+    pipeline_id: NonEmptyStr = Field(..., min_length=1, description="Pipeline ID to add")
+
+    model_config = ConfigDict(
+        json_schema_extra={
+            "example": {
+                "pipeline_id": "608c1f77bcf86cd799439012",
+            }
+        }
+    )
+
+
 class DatasetResponse(BaseModel):
     """Response schema for dataset"""
 
@@ -63,10 +85,20 @@ class DatasetResponse(BaseModel):
         },
     )
 
+class DatasetAddPipelineResponse(BaseModel):
+    """Response schema for adding a pipeline to a dataset"""
 
-class DatasetUpdateRequest(BaseModel):
-    """Request schema for updating a dataset"""
+    id: str = Field(..., alias="_id", description="Dataset ID")
+    pipeline_id: str = Field(..., alias="pipelineId", description="Pipeline ID added")
 
-    name: NonEmptyStr | None = Field(None, min_length=1, max_length=200)
-    description: NonEmptyStr | None = Field(None, min_length=1, max_length=1000)
-    tags: CleanTags | None = None
+    model_config = ConfigDict(
+        populate_by_name=True,
+        from_attributes=True,
+        json_encoders={ObjectId: str},
+        json_schema_extra={
+            "example": {
+                "_id": "507f1f77bcf86cd799439011",
+                "pipelineId": "608c1f77bcf86cd799439012",
+            }
+        },
+    )

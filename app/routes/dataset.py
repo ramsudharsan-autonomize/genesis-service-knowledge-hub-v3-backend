@@ -3,7 +3,7 @@
 from fastapi import APIRouter, Query, Response
 from fastapi import status
 
-from app.schemas.dataset import DatasetCreateRequest, DatasetResponse, DatasetUpdateRequest
+from app.schemas.dataset import DatasetAddPipelineRequest, DatasetAddPipelineResponse, DatasetCreateRequest, DatasetResponse, DatasetUpdateRequest
 from app.services.dataset_service import DatasetService
 from app.models import DatasetStatus
 from app.utils.error_handler import handle_exception
@@ -116,3 +116,25 @@ async def delete_dataset(
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         handle_exception(e, "deleting the dataset")
+
+
+@router.patch(
+    "/{dataset_id}/add-pipeline",
+    summary="Add a pipeline to a dataset",
+    response_model=DatasetAddPipelineResponse
+)
+async def add_pipeline_to_dataset(
+    dataset_id: str,
+    data: DatasetAddPipelineRequest
+) -> DatasetAddPipelineResponse:
+    """
+    Add a pipeline to a dataset
+
+    - **dataset_id**: The ID of the dataset
+    - **pipeline_id**: The ID of the pipeline to add
+    """
+    try:
+        response = await DatasetService.add_pipeline_to_dataset(dataset_id, data.pipeline_id)
+        return response
+    except Exception as e:
+        handle_exception(e, "adding pipeline to the dataset")
