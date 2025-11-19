@@ -4,7 +4,7 @@ from datetime import datetime
 from typing import Annotated
 from pydantic import BaseModel, Field, BeforeValidator, ConfigDict
 from bson import ObjectId
-from app.models import DatasetStatus
+from app.utils.enums import DatasetStatus
 from app.utils.schema_utils import clean_tags, strip_whitespace
 
 

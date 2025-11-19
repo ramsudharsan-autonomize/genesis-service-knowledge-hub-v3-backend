@@ -1,7 +1,7 @@
 from datetime import datetime, timezone
 from beanie import Document, PydanticObjectId
 from pydantic import Field
-from app.models.enums import DatasetStatus
+from app.utils.enums import DatasetStatus
 
 
 class Dataset(Document):

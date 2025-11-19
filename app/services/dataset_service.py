@@ -4,9 +4,10 @@ from datetime import datetime, timezone
 from beanie import PydanticObjectId
 from beanie.operators import Set
 
-from app.models.dataset import Dataset, DatasetStatus
+from app.models.dataset import Dataset
 from app.schemas.dataset import DatasetCreateRequest, DatasetUpdateRequest
 from app.core.exceptions import DatasetNotFoundException, DatasetAlreadyExistsException
+from app.utils.enums import DatasetStatus
 
 
 class DatasetService:
@@ -173,7 +174,7 @@ class DatasetService:
         """
         dataset = await DatasetService.get_dataset_by_id(dataset_id)
         pipeline_id = PydanticObjectId(pipeline_id)
-        
+
         if pipeline_id not in dataset.pipeline_ids:
             dataset.pipeline_ids.append(pipeline_id)
             dataset.updated_at = datetime.now(timezone.utc)
