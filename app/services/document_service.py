@@ -76,7 +76,7 @@ class UploadVerifier:
     """Verifier for upload completion checks (Single Responsibility)"""
 
     @staticmethod
-    def verify_upload_status(document: Document) -> None:
+    def verify_upload_status_is_uploading(document: Document) -> None:
         """Verify document is in correct state for completion"""
         if document.upload_status != UploadStatus.UPLOADING:
             raise ValidationException(f"Document is not in uploading state. Current status: {document.upload_status}")
@@ -266,7 +266,7 @@ class DocumentService:
         document = await self.document_repository.get_by_id(document_id)
 
         # Step 2: Verify state
-        self.upload_verifier.verify_upload_status(document)
+        self.upload_verifier.verify_upload_status_is_uploading(document)
 
         # Step 3: Verify checksums
         await self._verify_checksums(document, request, document_id)
