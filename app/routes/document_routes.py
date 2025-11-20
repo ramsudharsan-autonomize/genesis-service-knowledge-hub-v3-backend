@@ -3,8 +3,8 @@
 from beanie import PydanticObjectId
 from fastapi import APIRouter, status
 from app.schemas.document_schema import (
-    RequestUploadRequest,
-    RequestUploadResponse,
+    RequestUploadDetailsRequest,
+    RequestUploadDetailsResponse,
     CompleteUploadRequest,
     DocumentResponse,
 )
@@ -16,15 +16,15 @@ router = APIRouter()
 
 
 @router.post(
-    "/request-upload",
-    response_model=RequestUploadResponse,
+    "/request-upload-details",
+    response_model=RequestUploadDetailsResponse,
     status_code=status.HTTP_201_CREATED,
     summary="Request document upload",
     description="Create a document record and get a signed URL for uploading the file",
 )
-async def request_upload(request: RequestUploadRequest) -> RequestUploadResponse:
+async def request_upload_details(request: RequestUploadDetailsRequest) -> RequestUploadDetailsResponse:
     """
-    Request document upload and get signed URL
+    Request document upload details and get signed URL
 
     Steps:
     1. Validates the dataset exists
@@ -42,7 +42,8 @@ async def request_upload(request: RequestUploadRequest) -> RequestUploadResponse
     """
     try:
         service = DocumentService()
-        response = await service.request_upload(request)
+        upload_details = await service.get_upload_details(request)
+        response = RequestUploadDetailsResponse.model_validate(upload_details)
         return response
     except Exception as e:
         handle_exception(e, "requesting upload")

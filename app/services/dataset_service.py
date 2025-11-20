@@ -34,12 +34,7 @@ class DatasetService:
             raise DatasetAlreadyExistsException(data.name)
 
         # Create new dataset
-        dataset = Dataset(
-            name=data.name,
-            description=data.description,
-            tags=data.tags or [],
-        )
-
+        dataset = Dataset.model_validate(data)
         await dataset.insert()
         return dataset
 

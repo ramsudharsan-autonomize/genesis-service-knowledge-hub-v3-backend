@@ -13,7 +13,7 @@ pydantic_config = ConfigDict(
 )
 
 
-class RequestUploadRequest(BaseModel):
+class RequestUploadDetailsRequest(BaseModel):
     """Request schema for initiating document upload"""
 
     dataset_id: PydanticObjectId = Field(..., alias="datasetId", description="Dataset ID to upload document to")
@@ -50,7 +50,7 @@ class RequestUploadRequest(BaseModel):
     )
 
 
-class RequestUploadResponse(BaseModel):
+class RequestUploadDetailsResponse(BaseModel):
     """Response schema for request upload"""
 
     document_id: PydanticObjectId = Field(..., serialization_alias="documentId")

@@ -6,7 +6,7 @@ from beanie import PydanticObjectId
 from app.models.dataset_model import Dataset
 from app.models.document_model import Document, StorageDetails, SourceDetails, Metadata
 from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
-from app.schemas.document_schema import RequestUploadRequest, CompleteUploadRequest, RequestUploadResponse
+from app.schemas.document_schema import RequestUploadDetailsRequest, CompleteUploadRequest
 from app.services.storage_service import StorageService
 from app.core.exceptions import (
     ValidationException,
@@ -70,7 +70,7 @@ class DocumentFactory:
 
     @staticmethod
     def create_document(
-        request: RequestUploadRequest,
+        request: RequestUploadDetailsRequest,
         storage_details: StorageDetails,
         source_details: SourceDetails,
         metadata: Metadata,
@@ -174,7 +174,7 @@ class DocumentService:
         self.document_repository = document_repository or DocumentRepository()
         self.upload_verifier = upload_verifier or UploadVerifier()
 
-    async def request_upload(self, request: RequestUploadRequest) -> RequestUploadResponse:
+    async def get_upload_details(self, request: RequestUploadDetailsRequest) -> dict[str, any]:
         """
         Create a document record and get signed upload URL
 
@@ -204,15 +204,15 @@ class DocumentService:
             await document.delete()
             raise ValidationException(f"Failed to generate upload URL: {str(e)}")
 
-        return RequestUploadResponse(
-            document_id=document.id,
-            upload_url=upload_url,
-            storage_path=storage_path,
-        )
+        return {
+            "document_id": document.id,
+            "upload_url": upload_url,
+            "storage_path": storage_path,
+        }
 
     async def _create_document(
         self,
-        request: RequestUploadRequest,
+        request: RequestUploadDetailsRequest,
         storage_type: StorageType,
         storage_config: dict,
         storage_path: str,
