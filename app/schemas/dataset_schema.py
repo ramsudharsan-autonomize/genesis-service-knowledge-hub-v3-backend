@@ -22,8 +22,12 @@ CleanTags = Annotated[list[str], BeforeValidator(clean_tags)]
 class DatasetCreateRequest(BaseModel):
     """Request schema for creating a dataset - bare minimum fields"""
 
-    name: NonEmptyStr = Field(..., min_length=1, max_length=200, description="Dataset name")
-    description: NonEmptyStr = Field(..., min_length=1, max_length=1000, description="Dataset description")
+    name: NonEmptyStr = Field(
+        ..., min_length=1, max_length=200, description="Dataset name"
+    )
+    description: NonEmptyStr = Field(
+        ..., min_length=1, max_length=1000, description="Dataset description"
+    )
     tags: CleanTags = Field(default_factory=list, description="Tags for categorization")
 
     model_config = pydantic_config.copy()
@@ -49,7 +53,9 @@ class DatasetUpdateRequest(BaseModel):
 class DatasetAddPipelineRequest(BaseModel):
     """Request schema for adding a pipeline to a dataset"""
 
-    pipeline_id: PydanticObjectId = Field(..., alias="pipelineId", description="Pipeline ID to add")
+    pipeline_id: PydanticObjectId = Field(
+        ..., alias="pipelineId", description="Pipeline ID to add"
+    )
     model_config = pydantic_config.copy()
     model_config.update(
         json_schema_extra={
@@ -71,7 +77,9 @@ class DatasetResponse(BaseModel):
     created_at: datetime = Field(..., alias="createdAt")
     updated_at: datetime = Field(..., alias="updatedAt")
     data_source_id: str | None = Field(None, alias="dataSourceId")
-    pipeline_ids: list[PydanticObjectId] = Field(default_factory=list, alias="pipelineIds")
+    pipeline_ids: list[PydanticObjectId] = Field(
+        default_factory=list, alias="pipelineIds"
+    )
 
     model_config = pydantic_config
 
@@ -80,5 +88,23 @@ class DatasetAddPipelineResponse(BaseModel):
     """Response schema for adding a pipeline to a dataset"""
 
     id: PydanticObjectId = Field(..., alias="_id", description="Dataset ID")
-    pipeline_id: PydanticObjectId = Field(..., alias="pipelineId", description="Pipeline ID added")
+    pipeline_id: PydanticObjectId = Field(
+        ..., alias="pipelineId", description="Pipeline ID added"
+    )
+    model_config = pydantic_config
+
+
+class DatasetPipelinesResponse(BaseModel):
+    """Response schema for listing pipelines attached to a dataset"""
+
+    dataset_id: PydanticObjectId = Field(
+        ..., alias="datasetId", description="Dataset ID"
+    )
+    dataset_name: str = Field(..., alias="datasetName", description="Dataset name")
+    pipeline_ids: list[PydanticObjectId] = Field(
+        default_factory=list, alias="pipelineIds", description="List of pipeline IDs"
+    )
+    pipeline_count: int = Field(
+        ..., alias="pipelineCount", description="Total number of pipelines"
+    )
     model_config = pydantic_config
