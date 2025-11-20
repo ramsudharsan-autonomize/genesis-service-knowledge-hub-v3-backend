@@ -49,7 +49,12 @@ class DocumentService:
 
         # Step 4: Get signed URL
         try:
-            upload_url = await _get_signed_url(storage_path, storage_type, storage_config)
+            upload_url = await StorageService.get_upload_signed_url(
+                file_name=storage_path,
+                storage_type=storage_type.value,
+                container_name=storage_config["container"],
+                storage_account=storage_config["storage_account"],
+            )
         except Exception as e:
             await document.delete()
             raise ValidationException(f"Failed to generate upload URL: {str(e)}")
@@ -128,37 +133,6 @@ async def _create_document(
     await document.insert()
     logger.info(f"Created document record: {document.id}")
     return document
-
-
-async def _get_signed_url(
-    storage_path: str,
-    storage_type: StorageType,
-    storage_config: dict,
-) -> str:
-    """Get signed URL from storage service"""
-    try:
-        upload_url_response = await StorageService.get_upload_signed_url(
-            file_name=storage_path,
-            storage_type=storage_type.value,
-            container_name=storage_config["container"],
-            storage_account=storage_config["storage_account"],
-        )
-
-        upload_url = upload_url_response.get("url") or upload_url_response.get("uploadUrl")
-
-        if not upload_url:
-            raise ValidationException("Failed to get upload URL from storage service")
-
-        logger.info(f"Generated signed URL for storage path: {storage_path}")
-        return upload_url
-
-    except NotImplementedError:
-        upload_url = (
-            f"https://{storage_config['storage_account']}.blob.core.windows.net/"
-            f"{storage_config['container']}/{storage_path}?sas_token=placeholder"
-        )
-        logger.warning("Using placeholder upload URL - get_upload_signed_url not implemented")
-        return upload_url
 
 
 def _verify_upload_status_is_uploading(document: Document) -> None:

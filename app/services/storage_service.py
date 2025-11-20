@@ -1,8 +1,8 @@
 """Storage service for handling file uploads and signed URLs"""
 
 import logging
-from typing import Any
 from app.core.config import settings
+from genesis_common_utility.services.flexstore_service import FlexstoreService
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ class StorageService:
         storage_type: str,
         container_name: str,
         storage_account: str,
-    ) -> dict[str, Any]:
+    ) -> str:
         """
         Get signed URL for uploading a file to cloud storage.
         This is a placeholder that should integrate with your actual
@@ -45,9 +45,6 @@ class StorageService:
         Returns:
             Dictionary with signed URL and other upload details
         """
-        # TODO: Replace this with actual implementation
-        # This should call your existing get_upload_signed_url function
-
         request_payload = {
             "fileName": file_name,
             "sourceDetails": {
@@ -57,16 +54,9 @@ class StorageService:
             "sourceType": storage_type,
         }
 
-        logger.info(f"Requesting signed URL for file: {file_name}")
-        logger.debug(f"Request payload: {request_payload}")
-
-        # Placeholder response - replace with actual API call
-        # Example: response = await your_upload_service.get_signed_url(request_payload)
-
-        raise NotImplementedError(
-            "get_upload_signed_url needs to be implemented. "
-            "Please integrate with your existing signed URL generation service."
-        )
+        signed_url = FlexstoreService.get_upload_signed_url(request_payload)
+        logger.info(f"Signed URL for {file_name} generated.")
+        return signed_url
 
     @staticmethod
     def get_default_storage_config() -> dict[str, str]:

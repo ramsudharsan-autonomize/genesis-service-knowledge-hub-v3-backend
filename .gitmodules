@@ -1,3 +1,4 @@
 [submodule "genesis_common_utility"]
 	path = genesis_common_utility
 	url = https://github.com/autonomize-ai/genesis_common_utility.git
+	branch = develop
