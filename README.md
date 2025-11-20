@@ -28,7 +28,7 @@ A FastAPI-based backend service for managing datasets and documents in Knowledge
 
 1. Clone the repository:
 ```bash
-git clone <repository-url>
+git clone <https://github.com/ramsudharsan-autonomize/genesis-service-knowledge-hub-v3-backend>
 cd genesis-service-knowledge-hub-v3-backend
 ```
 
