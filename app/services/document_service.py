@@ -21,10 +21,10 @@ class DatasetValidator:
     """Validator for dataset-related operations (Single Responsibility)"""
 
     @staticmethod
-    async def validate_dataset_exists(dataset_id: str) -> Dataset:
+    async def validate_dataset_exists(dataset_id: PydanticObjectId) -> Dataset:
         """Validate that a dataset exists"""
         try:
-            dataset = await Dataset.get(PydanticObjectId(dataset_id))
+            dataset = await Dataset.get(dataset_id)
             if not dataset:
                 raise DatasetNotFoundException(f"Dataset with ID {dataset_id} not found")
             return dataset
@@ -132,10 +132,10 @@ class DocumentRepository:
         return document
 
     @staticmethod
-    async def get_by_id(document_id: str) -> Document:
+    async def get_by_id(document_id: PydanticObjectId) -> Document:
         """Get document by ID"""
         try:
-            document = await Document.get(PydanticObjectId(document_id))
+            document = await Document.get(document_id)
             if not document:
                 raise DocumentNotFoundException(f"Document with ID {document_id} not found")
             return document
@@ -205,7 +205,7 @@ class DocumentService:
             raise ValidationException(f"Failed to generate upload URL: {str(e)}")
 
         return RequestUploadResponse(
-            document_id=str(document.id),
+            document_id=document.id,
             upload_url=upload_url,
             storage_path=storage_path,
         )
@@ -272,7 +272,7 @@ class DocumentService:
             logger.warning("Using placeholder upload URL - get_upload_signed_url not implemented")
             return upload_url
 
-    async def complete_upload(self, document_id: str, request: CompleteUploadRequest) -> Document:
+    async def complete_upload(self, document_id: PydanticObjectId, request: CompleteUploadRequest) -> Document:
         """
         Complete document upload and verify checksums
 
@@ -331,6 +331,6 @@ class DocumentService:
         logger.info(f"Completed upload for document: {document.id}")
         return document
 
-    async def get_document_by_id(self, document_id: str) -> Document:
+    async def get_document_by_id(self, document_id: PydanticObjectId) -> Document:
         """Get document by ID"""
         return await self.document_repository.get_by_id(document_id)

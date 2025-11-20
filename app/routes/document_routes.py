@@ -1,5 +1,6 @@
 """Document API router with upload operations"""
 
+from beanie import PydanticObjectId
 from fastapi import APIRouter, status
 from app.schemas.document_schema import (
     RequestUploadRequest,
@@ -9,7 +10,6 @@ from app.schemas.document_schema import (
 )
 from app.services.document_service import DocumentService
 from app.utils.error_handler import handle_exception
-from app.utils.response_mapper import get_document_response
 
 
 router = APIRouter()
@@ -56,7 +56,7 @@ async def request_upload(request: RequestUploadRequest) -> RequestUploadResponse
     description="Complete the upload process and verify checksums",
 )
 async def complete_upload(
-    document_id: str,
+    document_id: PydanticObjectId,
     request: CompleteUploadRequest,
 ) -> DocumentResponse:
     """
@@ -75,7 +75,8 @@ async def complete_upload(
     try:
         service = DocumentService()
         document = await service.complete_upload(document_id, request)
-        return get_document_response(document)
+        response = DocumentResponse.model_validate(document)
+        return response
     except Exception as e:
         handle_exception(e, "completing upload")
 
@@ -87,7 +88,7 @@ async def complete_upload(
     summary="Get document by ID",
     description="Retrieve document details by document ID",
 )
-async def get_document(document_id: str) -> DocumentResponse:
+async def get_document(document_id: PydanticObjectId) -> DocumentResponse:
     """
     Get document by ID
 
@@ -102,6 +103,7 @@ async def get_document(document_id: str) -> DocumentResponse:
     try:
         service = DocumentService()
         document = await service.get_document_by_id(document_id)
-        return get_document_response(document)
+        response = DocumentResponse.model_validate(document)
+        return response
     except Exception as e:
         handle_exception(e, "retrieving document")

@@ -35,7 +35,8 @@ async def create_dataset(data: DatasetCreateRequest) -> DatasetResponse:
     """
     try:
         dataset = await DatasetService.create_dataset(data)
-        return DatasetResponse.model_validate(dataset)
+        response = DatasetResponse.model_validate(dataset)
+        return response
     except Exception as e:
         handle_exception(e, "creating the dataset")
 
@@ -53,7 +54,8 @@ async def get_dataset(dataset_id: PydanticObjectId) -> DatasetResponse:
     """
     try:
         dataset = await DatasetService.get_dataset_by_id(dataset_id)
-        return DatasetResponse.model_validate(dataset)
+        response = DatasetResponse.model_validate(dataset)
+        return response
     except Exception as e:
         handle_exception(e, "retrieving the dataset")
 
@@ -77,7 +79,8 @@ async def list_datasets(
     """
     try:
         datasets = await DatasetService.list_datasets(skip=skip, limit=limit, status=status)
-        return [DatasetResponse.model_validate(dataset) for dataset in datasets]
+        response = [DatasetResponse.model_validate(dataset) for dataset in datasets]
+        return response
     except Exception as e:
         handle_exception(e, "listing datasets")
 
@@ -98,7 +101,8 @@ async def update_dataset(dataset_id: PydanticObjectId, data: DatasetUpdateReques
     """
     try:
         dataset = await DatasetService.update_dataset(dataset_id, data)
-        return DatasetResponse.model_validate(dataset)
+        response = DatasetResponse.model_validate(dataset)
+        return response
     except Exception as e:
         handle_exception(e, "updating the dataset")
 
@@ -116,8 +120,9 @@ async def add_pipeline_to_dataset(
     - **pipeline_id**: The ID of the pipeline to add
     """
     try:
-        response = await DatasetService.add_pipeline_to_dataset(dataset_id, data.pipeline_id)
-        return DatasetAddPipelineResponse.model_validate({**response.model_dump(), "pipeline_id": data.pipeline_id})
+        dataset = await DatasetService.add_pipeline_to_dataset(dataset_id, data.pipeline_id)
+        response = DatasetAddPipelineResponse.model_validate({**dataset.model_dump(), "pipeline_id": data.pipeline_id})
+        return response
     except Exception as e:
         handle_exception(e, "adding pipeline to the dataset")
 

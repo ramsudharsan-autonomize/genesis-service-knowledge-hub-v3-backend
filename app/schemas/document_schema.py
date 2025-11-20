@@ -1,6 +1,7 @@
 """Document schemas for request/response validation"""
 
 from datetime import datetime
+from beanie import PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
 from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
 from app.utils.schema_utils import NonEmptyStr
@@ -15,7 +16,7 @@ pydantic_config = ConfigDict(
 class RequestUploadRequest(BaseModel):
     """Request schema for initiating document upload"""
 
-    dataset_id: str = Field(..., alias="datasetId", description="Dataset ID to upload document to")
+    dataset_id: PydanticObjectId = Field(..., alias="datasetId", description="Dataset ID to upload document to")
     original_name: NonEmptyStr = Field(
         ..., alias="originalName", min_length=1, max_length=255, description="Original filename"
     )
@@ -25,7 +26,7 @@ class RequestUploadRequest(BaseModel):
 
     # Source information
     source_type: SourceType = Field(default=SourceType.FRONTEND_UPLOAD, alias="sourceType")
-    data_source_id: str | None = Field(None, alias="dataSourceId", description="Data source ID if sync")
+    data_source_id: PydanticObjectId | None = Field(None, alias="dataSourceId", description="Data source ID if sync")
     external_path: str | None = Field(None, alias="externalPath", description="External path if sync")
 
     # Metadata
@@ -52,7 +53,7 @@ class RequestUploadRequest(BaseModel):
 class RequestUploadResponse(BaseModel):
     """Response schema for request upload"""
 
-    document_id: str = Field(..., serialization_alias="documentId")
+    document_id: PydanticObjectId = Field(..., serialization_alias="documentId")
     upload_url: str = Field(..., serialization_alias="uploadUrl")
     storage_path: str = Field(..., serialization_alias="storagePath")
     expires_at: str | None = Field(None, serialization_alias="expiresAt")
@@ -76,13 +77,17 @@ class StorageDetailsResponse(BaseModel):
     container: str
     path: str
 
+    model_config = pydantic_config
+
 
 class SourceDetailsResponse(BaseModel):
     """Response schema for source details"""
 
     type: SourceType
-    data_source_id: str | None = Field(None, serialization_alias="dataSourceId")
+    data_source_id: PydanticObjectId | None = Field(None, serialization_alias="dataSourceId")
     external_path: str | None = Field(None, serialization_alias="externalPath")
+
+    model_config = pydantic_config
 
 
 class MetadataResponse(BaseModel):
@@ -92,12 +97,14 @@ class MetadataResponse(BaseModel):
     hash: str | None = None
     uploaded_by_email: str | None = Field(None, serialization_alias="uploadedByEmail")
 
+    model_config = pydantic_config
+
 
 class DocumentResponse(BaseModel):
     """Response schema for document"""
 
-    id: str = Field(..., serialization_alias="_id")
-    dataset_id: str = Field(..., serialization_alias="datasetId")
+    id: PydanticObjectId = Field(..., serialization_alias="_id")
+    dataset_id: PydanticObjectId = Field(..., serialization_alias="datasetId")
 
     original_name: str = Field(..., serialization_alias="originalName")
     mime_type: str = Field(..., serialization_alias="mimeType")
@@ -120,7 +127,7 @@ class DocumentResponse(BaseModel):
 class UploadUrlResponse(BaseModel):
     """Response schema for upload URL"""
 
-    document_id: str = Field(..., serialization_alias="documentId")
+    document_id: PydanticObjectId = Field(..., serialization_alias="documentId")
     upload_url: str = Field(..., serialization_alias="uploadUrl")
     document: DocumentResponse
 
