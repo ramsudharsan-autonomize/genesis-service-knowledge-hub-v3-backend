@@ -6,6 +6,7 @@ from app.core.exceptions import (
     DatasetNotFoundException,
     DatasetAlreadyExistsException,
     ValidationException,
+    DocumentNotFoundException,
     BaseAppException,
 )
 
@@ -14,6 +15,7 @@ from app.core.exceptions import (
 EXCEPTION_STATUS_MAP: dict[Type[BaseAppException], int] = {
     DatasetNotFoundException: http_status.HTTP_404_NOT_FOUND,
     DatasetAlreadyExistsException: http_status.HTTP_409_CONFLICT,
+    DocumentNotFoundException: http_status.HTTP_404_NOT_FOUND,
     ValidationException: http_status.HTTP_400_BAD_REQUEST,
 }
 

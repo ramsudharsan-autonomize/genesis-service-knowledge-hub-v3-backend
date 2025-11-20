@@ -1,7 +1,8 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.core.database import init_db
-from app.routes import dataset_router
+from app.routes.dataset import router as dataset_router
+from app.routes.document import router as document_router
 
 
 @asynccontextmanager
@@ -14,3 +15,4 @@ async def lifespan(app: FastAPI):
 
 app = FastAPI(lifespan=lifespan, title="Knowledge Hub V3")
 app.include_router(dataset_router, prefix="/api/v3/knowledge_hub/datasets", tags=["Datasets"])
+app.include_router(document_router, prefix="/api/v3/knowledge_hub/documents", tags=["Documents"])

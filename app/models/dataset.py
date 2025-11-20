@@ -1,7 +1,12 @@
 from datetime import datetime, timezone
 from beanie import Document, PydanticObjectId
-from pydantic import Field
+from pydantic import ConfigDict, Field
 from app.utils.enums import DatasetStatus
+
+pydantic_config = ConfigDict(
+    populate_by_name=True,
+    use_enum_values=True,
+)
 
 
 class Dataset(Document):
@@ -17,9 +22,7 @@ class Dataset(Document):
     data_source_id: PydanticObjectId | None = Field(default=None, alias="dataSourceId")
     pipeline_ids: list[PydanticObjectId] = Field(default_factory=list, alias="pipelineIds")
 
+    model_config = pydantic_config
+
     class Settings:
         name = "datasets"
-        use_enum_values = True
-
-    class Config:
-        json_encoders = {PydanticObjectId: str, datetime: lambda v: v.isoformat()}

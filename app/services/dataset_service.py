@@ -44,7 +44,7 @@ class DatasetService:
         return dataset
 
     @staticmethod
-    async def get_dataset_by_id(dataset_id: str) -> Dataset:
+    async def get_dataset_by_id(dataset_id: PydanticObjectId) -> Dataset:
         """
         Get dataset by ID
 
@@ -58,7 +58,7 @@ class DatasetService:
             DatasetNotFoundException: If dataset not found
         """
         try:
-            dataset = await Dataset.get(PydanticObjectId(dataset_id))
+            dataset = await Dataset.get(dataset_id)
         except Exception:
             raise DatasetNotFoundException(dataset_id)
 
@@ -89,7 +89,7 @@ class DatasetService:
         return datasets
 
     @staticmethod
-    async def update_dataset(dataset_id: str, data: DatasetUpdateRequest) -> Dataset:
+    async def update_dataset(dataset_id: PydanticObjectId, data: DatasetUpdateRequest) -> Dataset:
         """
         Update dataset with partial updates
 
@@ -132,7 +132,7 @@ class DatasetService:
         return await DatasetService.get_dataset_by_id(dataset_id)
 
     @staticmethod
-    async def delete_dataset(dataset_id: str, soft_delete: bool = True) -> Dataset:
+    async def delete_dataset(dataset_id: PydanticObjectId, soft_delete: bool = True) -> Dataset:
         """
         Delete dataset (soft or hard delete)
 
@@ -158,7 +158,7 @@ class DatasetService:
             return dataset
         
     @staticmethod
-    async def add_pipeline_to_dataset(dataset_id: str, pipeline_id: str) -> Dataset:
+    async def add_pipeline_to_dataset(dataset_id: PydanticObjectId, pipeline_id: PydanticObjectId) -> Dataset:
         """
         Add a pipeline to the dataset's pipeline list
 
@@ -173,7 +173,6 @@ class DatasetService:
             DatasetNotFoundException: If dataset not found
         """
         dataset = await DatasetService.get_dataset_by_id(dataset_id)
-        pipeline_id = PydanticObjectId(pipeline_id)
 
         if pipeline_id not in dataset.pipeline_ids:
             dataset.pipeline_ids.append(pipeline_id)

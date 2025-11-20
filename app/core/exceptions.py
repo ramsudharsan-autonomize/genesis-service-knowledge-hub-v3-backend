@@ -29,3 +29,10 @@ class ValidationException(BaseAppException):
 
     def __init__(self, message: str):
         super().__init__(message=message, error_code="VALIDATION_ERROR")
+
+
+class DocumentNotFoundException(BaseAppException):
+    """Raised when a document is not found"""
+
+    def __init__(self, message: str):
+        super().__init__(message=message, error_code="DOCUMENT_NOT_FOUND")

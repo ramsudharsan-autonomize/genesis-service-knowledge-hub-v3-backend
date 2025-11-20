@@ -1,13 +1,19 @@
 """Dataset API router with CRUD operations"""
 
+from beanie import PydanticObjectId
 from fastapi import APIRouter, Query, Response
 from fastapi import status
 
-from app.schemas.dataset import DatasetAddPipelineRequest, DatasetAddPipelineResponse, DatasetCreateRequest, DatasetResponse, DatasetUpdateRequest
+from app.schemas.dataset import (
+    DatasetAddPipelineRequest,
+    DatasetAddPipelineResponse,
+    DatasetCreateRequest,
+    DatasetResponse,
+    DatasetUpdateRequest,
+)
 from app.services.dataset_service import DatasetService
 from app.utils.enums import DatasetStatus
 from app.utils.error_handler import handle_exception
-from app.utils.response_mapper import get_dataset_response
 
 
 router = APIRouter()
@@ -29,7 +35,7 @@ async def create_dataset(data: DatasetCreateRequest) -> DatasetResponse:
     """
     try:
         dataset = await DatasetService.create_dataset(data)
-        return get_dataset_response(dataset)
+        return DatasetResponse.model_validate(dataset)
     except Exception as e:
         handle_exception(e, "creating the dataset")
 
@@ -39,7 +45,7 @@ async def create_dataset(data: DatasetCreateRequest) -> DatasetResponse:
     response_model=DatasetResponse,
     summary="Get dataset by ID",
 )
-async def get_dataset(dataset_id: str) -> DatasetResponse:
+async def get_dataset(dataset_id: PydanticObjectId) -> DatasetResponse:
     """
     Get a specific dataset by ID
 
@@ -47,7 +53,7 @@ async def get_dataset(dataset_id: str) -> DatasetResponse:
     """
     try:
         dataset = await DatasetService.get_dataset_by_id(dataset_id)
-        return get_dataset_response(dataset)
+        return DatasetResponse.model_validate(dataset)
     except Exception as e:
         handle_exception(e, "retrieving the dataset")
 
@@ -71,7 +77,7 @@ async def list_datasets(
     """
     try:
         datasets = await DatasetService.list_datasets(skip=skip, limit=limit, status=status)
-        return [get_dataset_response(dataset) for dataset in datasets]
+        return [DatasetResponse.model_validate(dataset) for dataset in datasets]
     except Exception as e:
         handle_exception(e, "listing datasets")
 
@@ -81,7 +87,7 @@ async def list_datasets(
     response_model=DatasetResponse,
     summary="Update a dataset",
 )
-async def update_dataset(dataset_id: str, data: DatasetUpdateRequest) -> DatasetResponse:
+async def update_dataset(dataset_id: PydanticObjectId, data: DatasetUpdateRequest) -> DatasetResponse:
     """
     Update a dataset (partial update)
 
@@ -92,9 +98,28 @@ async def update_dataset(dataset_id: str, data: DatasetUpdateRequest) -> Dataset
     """
     try:
         dataset = await DatasetService.update_dataset(dataset_id, data)
-        return get_dataset_response(dataset)
+        return DatasetResponse.model_validate(dataset)
     except Exception as e:
         handle_exception(e, "updating the dataset")
+
+
+@router.patch(
+    "/{dataset_id}/add-pipeline", summary="Add a pipeline to a dataset", response_model=DatasetAddPipelineResponse
+)
+async def add_pipeline_to_dataset(
+    dataset_id: PydanticObjectId, data: DatasetAddPipelineRequest
+) -> DatasetAddPipelineResponse:
+    """
+    Add a pipeline to a dataset
+
+    - **dataset_id**: The ID of the dataset
+    - **pipeline_id**: The ID of the pipeline to add
+    """
+    try:
+        response = await DatasetService.add_pipeline_to_dataset(dataset_id, data.pipeline_id)
+        return DatasetAddPipelineResponse.model_validate({**response.model_dump(), "pipeline_id": data.pipeline_id})
+    except Exception as e:
+        handle_exception(e, "adding pipeline to the dataset")
 
 
 @router.delete(
@@ -103,7 +128,7 @@ async def update_dataset(dataset_id: str, data: DatasetUpdateRequest) -> Dataset
     summary="Delete a dataset",
 )
 async def delete_dataset(
-    dataset_id: str, permanent: bool = Query(False, description="Permanently delete (hard delete) if True")
+    dataset_id: PydanticObjectId, permanent: bool = Query(False, description="Permanently delete (hard delete) if True")
 ):
     """
     Delete a dataset
@@ -116,25 +141,3 @@ async def delete_dataset(
         return Response(status_code=status.HTTP_204_NO_CONTENT)
     except Exception as e:
         handle_exception(e, "deleting the dataset")
-
-
-@router.patch(
-    "/{dataset_id}/add-pipeline",
-    summary="Add a pipeline to a dataset",
-    response_model=DatasetAddPipelineResponse
-)
-async def add_pipeline_to_dataset(
-    dataset_id: str,
-    data: DatasetAddPipelineRequest
-) -> DatasetAddPipelineResponse:
-    """
-    Add a pipeline to a dataset
-
-    - **dataset_id**: The ID of the dataset
-    - **pipeline_id**: The ID of the pipeline to add
-    """
-    try:
-        response = await DatasetService.add_pipeline_to_dataset(dataset_id, data.pipeline_id)
-        return response
-    except Exception as e:
-        handle_exception(e, "adding pipeline to the dataset")

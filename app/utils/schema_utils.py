@@ -1,3 +1,7 @@
+from typing import Annotated
+from pydantic import BeforeValidator
+
+
 def strip_whitespace(v: str) -> str:
     """Strip whitespace and validate non-empty string"""
     if isinstance(v, str):
@@ -14,3 +18,8 @@ def clean_tags(v: list[str] | None) -> list[str]:
         return []
     cleaned = [tag.strip() for tag in v if tag and tag.strip()]
     return list(set(cleaned))
+
+
+# Reusable type annotations
+NonEmptyStr = Annotated[str, BeforeValidator(strip_whitespace)]
+CleanTags = Annotated[list[str], BeforeValidator(clean_tags)]
