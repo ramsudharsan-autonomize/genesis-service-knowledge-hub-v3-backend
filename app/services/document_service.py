@@ -317,3 +317,25 @@ class DocumentService:
     async def get_document_by_id(self, document_id: PydanticObjectId) -> Document:
         """Get document by ID"""
         return await self.document_repository.get_by_id(document_id)
+
+    @staticmethod
+    async def get_documents_by_dataset(
+        dataset_id: PydanticObjectId,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Document]:
+        """
+        Get all documents for a specific dataset with pagination
+
+        Args:
+            dataset_id: Dataset ID
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List of document objects
+        """
+        await DatasetService.get_dataset_by_id(dataset_id)
+
+        documents = await Document.find(Document.dataset_id == dataset_id).skip(skip).limit(limit).to_list()
+        return documents
