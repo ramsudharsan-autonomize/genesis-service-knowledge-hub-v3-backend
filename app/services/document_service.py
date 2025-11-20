@@ -3,9 +3,10 @@
 import logging
 from datetime import datetime, timezone
 from beanie import PydanticObjectId
-from app.models.document_model import Document, StorageDetails, SourceDetails, Metadata
+from app.factories.document_factory import DocumentFactory
+from app.models.document_model import Document
 from app.services.dataset_service import DatasetService
-from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.utils.enums import StorageType, UploadStatus
 from app.schemas.document_schema import RequestUploadDetailsRequest, CompleteUploadRequest
 from app.services.storage_service import StorageService
 from app.core.exceptions import (
@@ -14,62 +15,6 @@ from app.core.exceptions import (
 )
 
 logger = logging.getLogger(__name__)
-
-
-class DocumentFactory:
-    """Factory for creating document objects (Factory Pattern)"""
-
-    @staticmethod
-    def create_storage_details(
-        storage_type: StorageType,
-        container: str,
-        storage_path: str,
-    ) -> StorageDetails:
-        """Create StorageDetails object"""
-        return StorageDetails(
-            type=storage_type,
-            container=container,
-            path=storage_path,
-        )
-
-    @staticmethod
-    def create_source_details(
-        source_type: SourceType,
-        data_source_id: str | None,
-        external_path: str | None,
-    ) -> SourceDetails:
-        """Create SourceDetails object"""
-        return SourceDetails(
-            type=source_type,
-            data_source_id=PydanticObjectId(data_source_id) if data_source_id else None,
-            external_path=external_path,
-        )
-
-    @staticmethod
-    def create_metadata(uploaded_by_email: str | None) -> Metadata:
-        """Create Metadata object"""
-        return Metadata(uploaded_by_email=uploaded_by_email)
-
-    @staticmethod
-    def create_document(
-        request: RequestUploadDetailsRequest,
-        storage_details: StorageDetails,
-        source_details: SourceDetails,
-        metadata: Metadata,
-    ) -> Document:
-        """Create Document object from request"""
-        return Document(
-            dataset_id=PydanticObjectId(request.dataset_id),
-            original_name=request.original_name,
-            mime_type=request.mime_type,
-            expected_size=request.expected_size,
-            expected_hash=request.expected_hash,
-            storage=storage_details,
-            source=source_details,
-            metadata=metadata,
-            upload_status=UploadStatus.UPLOADING,
-            processing_status=ProcessingStatus.PENDING,
-        )
 
 
 class UploadVerifier:
@@ -145,12 +90,10 @@ class DocumentService:
     def __init__(
         self,
         storage_service: StorageService | None = None,
-        document_factory: DocumentFactory | None = None,
         document_repository: DocumentRepository | None = None,
         upload_verifier: UploadVerifier | None = None,
     ):
         self.storage_service = storage_service or StorageService()
-        self.document_factory = document_factory or DocumentFactory()
         self.document_repository = document_repository or DocumentRepository()
         self.upload_verifier = upload_verifier or UploadVerifier()
 
@@ -198,21 +141,21 @@ class DocumentService:
         storage_path: str,
     ) -> Document:
         """Create and save document with all details"""
-        storage_details = self.document_factory.create_storage_details(
+        storage_details = DocumentFactory.create_storage_details(
             storage_type=storage_type,
             container=storage_config["container"],
             storage_path=storage_path,
         )
 
-        source_details = self.document_factory.create_source_details(
+        source_details = DocumentFactory.create_source_details(
             source_type=request.source_type,
             data_source_id=request.data_source_id,
             external_path=request.external_path,
         )
 
-        metadata = self.document_factory.create_metadata(uploaded_by_email=request.uploaded_by_email)
+        metadata = DocumentFactory.create_metadata(uploaded_by_email=request.uploaded_by_email)
 
-        document = self.document_factory.create_document(
+        document = DocumentFactory.create_document(
             request=request,
             storage_details=storage_details,
             source_details=source_details,
