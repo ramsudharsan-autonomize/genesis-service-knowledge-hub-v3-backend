@@ -17,68 +17,6 @@ from app.core.exceptions import (
 logger = logging.getLogger(__name__)
 
 
-class UploadVerifier:
-    """Verifier for upload completion checks (Single Responsibility)"""
-
-    @staticmethod
-    def verify_upload_status_is_uploading(document: Document) -> None:
-        """Verify document is in correct state for completion"""
-        if document.upload_status != UploadStatus.UPLOADING:
-            raise ValidationException(f"Document is not in uploading state. Current status: {document.upload_status}")
-
-    @staticmethod
-    def verify_file_size(expected: int | None, actual: int, document_id: str) -> None:
-        """Verify file size matches expected size"""
-        if expected and actual != expected:
-            logger.warning(f"Size mismatch for document {document_id}: expected {expected}, got {actual}")
-            raise ValidationException(f"File size mismatch: expected {expected} bytes, got {actual} bytes")
-
-    @staticmethod
-    def verify_file_hash(expected: str | None, actual: str, document_id: str) -> None:
-        """Verify file hash matches expected hash"""
-        if expected and actual != expected:
-            logger.warning(f"Hash mismatch for document {document_id}: expected {expected}, got {actual}")
-            raise ValidationException(f"File hash mismatch: expected {expected}, got {actual}")
-
-
-class DocumentRepository:
-    """Repository for document data access (Repository Pattern)"""
-
-    @staticmethod
-    async def save(document: Document) -> Document:
-        """Save document to database"""
-        await document.insert()
-        logger.info(f"Created document record: {document.id}")
-        return document
-
-    @staticmethod
-    async def update(document: Document) -> Document:
-        """Update document in database"""
-        document.updated_at = datetime.now(timezone.utc)
-        await document.save()
-        return document
-
-    @staticmethod
-    async def get_by_id(document_id: PydanticObjectId) -> Document:
-        """Get document by ID"""
-        try:
-            document = await Document.get(document_id)
-            if not document:
-                raise DocumentNotFoundException(f"Document with ID {document_id} not found")
-            return document
-        except Exception as e:
-            if isinstance(e, DocumentNotFoundException):
-                raise
-            raise ValidationException(f"Invalid document ID: {document_id}")
-
-    @staticmethod
-    async def mark_as_error(document: Document) -> None:
-        """Mark document as error and save"""
-        document.upload_status = UploadStatus.ERROR
-        document.updated_at = datetime.now(timezone.utc)
-        await document.save()
-
-
 class DocumentService:
     """
     Service layer for document operations (Dependency Injection)
@@ -87,17 +25,8 @@ class DocumentService:
     between validators, factories, repositories, and storage services.
     """
 
-    def __init__(
-        self,
-        storage_service: StorageService | None = None,
-        document_repository: DocumentRepository | None = None,
-        upload_verifier: UploadVerifier | None = None,
-    ):
-        self.storage_service = storage_service or StorageService()
-        self.document_repository = document_repository or DocumentRepository()
-        self.upload_verifier = upload_verifier or UploadVerifier()
-
-    async def get_upload_details(self, request: RequestUploadDetailsRequest) -> dict[str, any]:
+    @staticmethod
+    async def get_upload_details(request: RequestUploadDetailsRequest) -> dict[str, str | PydanticObjectId]:
         """
         Create a document record and get signed upload URL
 
@@ -111,18 +40,16 @@ class DocumentService:
         dataset = await DatasetService.get_dataset_by_id(request.dataset_id)
 
         # Step 2: Prepare storage configuration
-        storage_config = self.storage_service.get_default_storage_config()
+        storage_config = StorageService.get_default_storage_config()
         storage_type = StorageType(storage_config["storage_type"])
-        storage_path = self.storage_service.build_storage_path(
-            dataset_name=dataset.name, filename=request.original_name
-        )
+        storage_path = StorageService.build_storage_path(dataset_name=dataset.name, filename=request.original_name)
 
         # Step 3: Create document
-        document = await self._create_document(request, storage_type, storage_config, storage_path)
+        document = await _create_document(request, storage_type, storage_config, storage_path)
 
         # Step 4: Get signed URL
         try:
-            upload_url = await self._get_signed_url(storage_path, storage_type, storage_config)
+            upload_url = await _get_signed_url(storage_path, storage_type, storage_config)
         except Exception as e:
             await document.delete()
             raise ValidationException(f"Failed to generate upload URL: {str(e)}")
@@ -133,69 +60,8 @@ class DocumentService:
             "storage_path": storage_path,
         }
 
-    async def _create_document(
-        self,
-        request: RequestUploadDetailsRequest,
-        storage_type: StorageType,
-        storage_config: dict,
-        storage_path: str,
-    ) -> Document:
-        """Create and save document with all details"""
-        storage_details = DocumentFactory.create_storage_details(
-            storage_type=storage_type,
-            container=storage_config["container"],
-            storage_path=storage_path,
-        )
-
-        source_details = DocumentFactory.create_source_details(
-            source_type=request.source_type,
-            data_source_id=request.data_source_id,
-            external_path=request.external_path,
-        )
-
-        metadata = DocumentFactory.create_metadata(uploaded_by_email=request.uploaded_by_email)
-
-        document = DocumentFactory.create_document(
-            request=request,
-            storage_details=storage_details,
-            source_details=source_details,
-            metadata=metadata,
-        )
-
-        return await self.document_repository.save(document)
-
-    async def _get_signed_url(
-        self,
-        storage_path: str,
-        storage_type: StorageType,
-        storage_config: dict,
-    ) -> str:
-        """Get signed URL from storage service"""
-        try:
-            upload_url_response = await self.storage_service.get_upload_signed_url(
-                file_name=storage_path,
-                storage_type=storage_type.value,
-                container_name=storage_config["container"],
-                storage_account=storage_config["storage_account"],
-            )
-
-            upload_url = upload_url_response.get("url") or upload_url_response.get("uploadUrl")
-
-            if not upload_url:
-                raise ValidationException("Failed to get upload URL from storage service")
-
-            logger.info(f"Generated signed URL for storage path: {storage_path}")
-            return upload_url
-
-        except NotImplementedError:
-            upload_url = (
-                f"https://{storage_config['storage_account']}.blob.core.windows.net/"
-                f"{storage_config['container']}/{storage_path}?sas_token=placeholder"
-            )
-            logger.warning("Using placeholder upload URL - get_upload_signed_url not implemented")
-            return upload_url
-
-    async def complete_upload(self, document_id: PydanticObjectId, request: CompleteUploadRequest) -> Document:
+    @staticmethod
+    async def complete_upload(document_id: PydanticObjectId, request: CompleteUploadRequest) -> Document:
         """
         Complete document upload and verify checksums
 
@@ -206,54 +72,156 @@ class DocumentService:
         4. Updates document status to uploaded
         """
         # Step 1: Get document
-        document = await self.document_repository.get_by_id(document_id)
+        document = await DocumentService.get_document_by_id(document_id)
 
         # Step 2: Verify state
-        self.upload_verifier.verify_upload_status_is_uploading(document)
+        _verify_upload_status_is_uploading(document)
 
         # Step 3: Verify checksums
-        await self._verify_checksums(document, request, document_id)
+        await _verify_checksums(document, request, str(document_id))
 
         # Step 4: Update document
-        return await self._finalize_upload(document, request)
+        return await _finalize_upload(document, request)
 
-    async def _verify_checksums(
-        self,
-        document: Document,
-        request: CompleteUploadRequest,
-        document_id: str,
-    ) -> None:
-        """Verify file size and hash"""
+    @staticmethod
+    async def get_document_by_id(document_id: PydanticObjectId) -> Document:
+        """Get document by ID (public API)"""
         try:
-            self.upload_verifier.verify_file_size(
-                expected=document.expected_size,
-                actual=request.size_in_bytes,
-                document_id=document_id,
-            )
+            document = await Document.get(document_id)
+            if not document:
+                raise DocumentNotFoundException(f"Document with ID {document_id} not found")
+            return document
+        except Exception as e:
+            if isinstance(e, DocumentNotFoundException):
+                raise
+            raise ValidationException(f"Invalid document ID: {document_id}")
 
-            self.upload_verifier.verify_file_hash(
-                expected=document.expected_hash,
-                actual=request.hash,
-                document_id=document_id,
-            )
-        except ValidationException:
-            await self.document_repository.mark_as_error(document)
-            raise
 
-    async def _finalize_upload(
-        self,
-        document: Document,
-        request: CompleteUploadRequest,
-    ) -> Document:
-        """Update document with final metadata and status"""
-        document.metadata.size_in_bytes = request.size_in_bytes
-        document.metadata.hash = request.hash
-        document.upload_status = UploadStatus.UPLOADED
+async def _create_document(
+    request: RequestUploadDetailsRequest,
+    storage_type: StorageType,
+    storage_config: dict,
+    storage_path: str,
+) -> Document:
+    """Create and save document with all details"""
+    storage_details = DocumentFactory.create_storage_details(
+        storage_type=storage_type,
+        container=storage_config["container"],
+        storage_path=storage_path,
+    )
 
-        document = await self.document_repository.update(document)
-        logger.info(f"Completed upload for document: {document.id}")
-        return document
+    source_details = DocumentFactory.create_source_details(
+        source_type=request.source_type,
+        data_source_id=request.data_source_id,
+        external_path=request.external_path,
+    )
 
-    async def get_document_by_id(self, document_id: PydanticObjectId) -> Document:
-        """Get document by ID"""
-        return await self.document_repository.get_by_id(document_id)
+    metadata = DocumentFactory.create_metadata(uploaded_by_email=request.uploaded_by_email)
+
+    document = DocumentFactory.create_document(
+        request=request,
+        storage_details=storage_details,
+        source_details=source_details,
+        metadata=metadata,
+    )
+
+    await document.insert()
+    logger.info(f"Created document record: {document.id}")
+    return document
+
+
+async def _get_signed_url(
+    storage_path: str,
+    storage_type: StorageType,
+    storage_config: dict,
+) -> str:
+    """Get signed URL from storage service"""
+    try:
+        upload_url_response = await StorageService.get_upload_signed_url(
+            file_name=storage_path,
+            storage_type=storage_type.value,
+            container_name=storage_config["container"],
+            storage_account=storage_config["storage_account"],
+        )
+
+        upload_url = upload_url_response.get("url") or upload_url_response.get("uploadUrl")
+
+        if not upload_url:
+            raise ValidationException("Failed to get upload URL from storage service")
+
+        logger.info(f"Generated signed URL for storage path: {storage_path}")
+        return upload_url
+
+    except NotImplementedError:
+        upload_url = (
+            f"https://{storage_config['storage_account']}.blob.core.windows.net/"
+            f"{storage_config['container']}/{storage_path}?sas_token=placeholder"
+        )
+        logger.warning("Using placeholder upload URL - get_upload_signed_url not implemented")
+        return upload_url
+
+
+def _verify_upload_status_is_uploading(document: Document) -> None:
+    """Verify document is in correct state for completion"""
+    if document.upload_status != UploadStatus.UPLOADING:
+        raise ValidationException(f"Document is not in uploading state. Current status: {document.upload_status}")
+
+
+async def _verify_checksums(
+    document: Document,
+    request: CompleteUploadRequest,
+    document_id: str,
+) -> None:
+    """Verify file size and hash"""
+    try:
+        _verify_file_size(
+            expected=document.expected_size,
+            actual=request.size_in_bytes,
+            document_id=document_id,
+        )
+
+        _verify_file_hash(
+            expected=document.expected_hash,
+            actual=request.hash,
+            document_id=document_id,
+        )
+    except ValidationException:
+        await _mark_document_as_error(document)
+        raise
+
+
+def _verify_file_size(expected: int | None, actual: int, document_id: str) -> None:
+    """Verify file size matches expected size"""
+    if expected and actual != expected:
+        logger.warning(f"Size mismatch for document {document_id}: expected {expected}, got {actual}")
+        raise ValidationException(f"File size mismatch: expected {expected} bytes, got {actual} bytes")
+
+
+def _verify_file_hash(expected: str | None, actual: str, document_id: str) -> None:
+    """Verify file hash matches expected hash"""
+    if expected and actual != expected:
+        logger.warning(f"Hash mismatch for document {document_id}: expected {expected}, got {actual}")
+        raise ValidationException(f"File hash mismatch: expected {expected}, got {actual}")
+
+
+async def _mark_document_as_error(document: Document) -> None:
+    """Mark document as error and save"""
+    document.upload_status = UploadStatus.ERROR
+    document.updated_at = datetime.now(timezone.utc)
+    await document.save()
+    logger.warning(f"Marked document {document.id} as error")
+
+
+async def _finalize_upload(
+    document: Document,
+    request: CompleteUploadRequest,
+) -> Document:
+    """Update document with final metadata and status"""
+    document.metadata.size_in_bytes = request.size_in_bytes
+    document.metadata.hash = request.hash
+    document.upload_status = UploadStatus.UPLOADED
+    document.updated_at = datetime.now(timezone.utc)
+
+    await document.save()
+    logger.info(f"Completed upload for document: {document.id}")
+    return document

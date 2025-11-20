@@ -41,8 +41,7 @@ async def request_upload_details(request: RequestUploadDetailsRequest) -> Reques
     - **uploadedByEmail**: Email of user uploading the file
     """
     try:
-        service = DocumentService()
-        upload_details = await service.get_upload_details(request)
+        upload_details = await DocumentService.get_upload_details(request)
         response = RequestUploadDetailsResponse.model_validate(upload_details)
         return response
     except Exception as e:
@@ -74,8 +73,7 @@ async def complete_upload(
     - **hash**: Actual file hash (sha256)
     """
     try:
-        service = DocumentService()
-        document = await service.complete_upload(document_id, request)
+        document = await DocumentService.complete_upload(document_id, request)
         response = DocumentResponse.model_validate(document)
         return response
     except Exception as e:
@@ -102,8 +100,7 @@ async def get_document(document_id: PydanticObjectId) -> DocumentResponse:
     - **document_id**: ID of the document to retrieve
     """
     try:
-        service = DocumentService()
-        document = await service.get_document_by_id(document_id)
+        document = await DocumentService.get_document_by_id(document_id)
         response = DocumentResponse.model_validate(document)
         return response
     except Exception as e:
