@@ -34,7 +34,9 @@ class DatasetService:
             raise DatasetAlreadyExistsException(data.name)
 
         # Create new dataset
-        dataset = Dataset.model_validate(data)
+        dataset = Dataset(
+            **data.model_dump()
+        )  ##Dataset model validation doesnt work when the data is a DatasetCreateRequest right?
         await dataset.insert()
         return dataset
 
@@ -63,7 +65,9 @@ class DatasetService:
         return dataset
 
     @staticmethod
-    async def list_datasets(skip: int = 0, limit: int = 100, status: DatasetStatus | None = None) -> list[Dataset]:
+    async def list_datasets(
+        skip: int = 0, limit: int = 100, status: DatasetStatus | None = None
+    ) -> list[Dataset]:
         """
         List datasets with pagination and filtering
 
@@ -84,7 +88,9 @@ class DatasetService:
         return datasets
 
     @staticmethod
-    async def update_dataset(dataset_id: PydanticObjectId, data: DatasetUpdateRequest) -> Dataset:
+    async def update_dataset(
+        dataset_id: PydanticObjectId, data: DatasetUpdateRequest
+    ) -> Dataset:
         """
         Update dataset with partial updates
 
@@ -127,7 +133,9 @@ class DatasetService:
         return await DatasetService.get_dataset_by_id(dataset_id)
 
     @staticmethod
-    async def delete_dataset(dataset_id: PydanticObjectId, soft_delete: bool = True) -> Dataset:
+    async def delete_dataset(
+        dataset_id: PydanticObjectId, soft_delete: bool = True
+    ) -> Dataset:
         """
         Delete dataset (soft or hard delete)
 
@@ -145,15 +153,24 @@ class DatasetService:
 
         if soft_delete:
             # Soft delete - mark as deleted
-            await dataset.update(Set({"status": DatasetStatus.DELETED, "updated_at": datetime.now(timezone.utc)}))
+            await dataset.update(
+                Set(
+                    {
+                        "status": DatasetStatus.DELETED,
+                        "updated_at": datetime.now(timezone.utc),
+                    }
+                )
+            )
             return await DatasetService.get_dataset_by_id(dataset_id)
         else:
             # Hard delete - permanently remove
             await dataset.delete()
             return dataset
-        
+
     @staticmethod
-    async def add_pipeline_to_dataset(dataset_id: PydanticObjectId, pipeline_id: PydanticObjectId) -> Dataset:
+    async def add_pipeline_to_dataset(
+        dataset_id: PydanticObjectId, pipeline_id: PydanticObjectId
+    ) -> Dataset:
         """
         Add a pipeline to the dataset's pipeline list
 
@@ -176,3 +193,19 @@ class DatasetService:
 
         return dataset
 
+    @staticmethod
+    async def get_pipelines_by_dataset(dataset_id: PydanticObjectId) -> Dataset:
+        """
+        Get all pipelines attached to a dataset
+
+        Args:
+            dataset_id: Dataset ID
+
+        Returns:
+            Dataset document with pipeline_ids
+
+        Raises:
+            DatasetNotFoundException: If dataset not found
+        """
+        dataset = await DatasetService.get_dataset_by_id(dataset_id)
+        return dataset

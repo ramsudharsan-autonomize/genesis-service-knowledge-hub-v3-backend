@@ -16,22 +16,40 @@ pydantic_config = ConfigDict(
 class RequestUploadDetailsRequest(BaseModel):
     """Request schema for initiating document upload"""
 
-    dataset_id: PydanticObjectId = Field(..., alias="datasetId", description="Dataset ID to upload document to")
+    dataset_id: PydanticObjectId = Field(
+        ..., alias="datasetId", description="Dataset ID to upload document to"
+    )
     original_name: NonEmptyStr = Field(
-        ..., alias="originalName", min_length=1, max_length=255, description="Original filename"
+        ...,
+        alias="originalName",
+        min_length=1,
+        max_length=255,
+        description="Original filename",
     )
     mime_type: str = Field(..., alias="mimeType", description="MIME type of the file")
-    expected_size: int = Field(..., alias="expectedSize", gt=0, description="Expected file size in bytes")
-    expected_hash: str | None = Field(None, alias="expectedHash", description="Expected file hash for verification")
+    expected_size: int = Field(
+        ..., alias="expectedSize", gt=0, description="Expected file size in bytes"
+    )
+    expected_hash: str | None = Field(
+        None, alias="expectedHash", description="Expected file hash for verification"
+    )
 
     # Source information
-    source_type: SourceType = Field(default=SourceType.FRONTEND_UPLOAD, alias="sourceType")
-    data_source_id: PydanticObjectId | None = Field(None, alias="dataSourceId", description="Data source ID if sync")
-    external_path: str | None = Field(None, alias="externalPath", description="External path if sync")
+    source_type: SourceType = Field(
+        default=SourceType.FRONTEND_UPLOAD, alias="sourceType"
+    )
+    data_source_id: PydanticObjectId | None = Field(
+        None, alias="dataSourceId", description="Data source ID if sync"
+    )
+    external_path: str | None = Field(
+        None, alias="externalPath", description="External path if sync"
+    )
 
     # Metadata
     uploaded_by_email: EmailStr | None = Field(
-        default=None, alias="uploadedByEmail", description="Email of user who uploaded the file"
+        default=None,
+        alias="uploadedByEmail",
+        description="Email of user who uploaded the file",
     )
 
     model_config = pydantic_config.copy()
@@ -64,7 +82,9 @@ class RequestUploadDetailsResponse(BaseModel):
 class CompleteUploadRequest(BaseModel):
     """Request schema for completing document upload"""
 
-    size_in_bytes: int = Field(..., alias="sizeInBytes", gt=0, description="Actual uploaded file size")
+    size_in_bytes: int = Field(
+        ..., alias="sizeInBytes", gt=0, description="Actual uploaded file size"
+    )
     hash: str = Field(..., description="Actual file hash (sha256)")
 
     model_config = pydantic_config
@@ -84,7 +104,9 @@ class SourceDetailsResponse(BaseModel):
     """Response schema for source details"""
 
     type: SourceType
-    data_source_id: PydanticObjectId | None = Field(None, serialization_alias="dataSourceId")
+    data_source_id: PydanticObjectId | None = Field(
+        None, serialization_alias="dataSourceId"
+    )
     external_path: str | None = Field(None, serialization_alias="externalPath")
 
     model_config = pydantic_config
@@ -116,7 +138,9 @@ class DocumentResponse(BaseModel):
     metadata: MetadataResponse
 
     upload_status: UploadStatus = Field(..., serialization_alias="uploadStatus")
-    processing_status: ProcessingStatus = Field(..., serialization_alias="processingStatus")
+    processing_status: ProcessingStatus = Field(
+        ..., serialization_alias="processingStatus"
+    )
 
     created_at: datetime = Field(..., serialization_alias="createdAt")
     updated_at: datetime = Field(..., serialization_alias="updatedAt")

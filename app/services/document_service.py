@@ -6,8 +6,11 @@ from beanie import PydanticObjectId
 from app.factories.document_factory import DocumentFactory
 from app.models.document_model import Document
 from app.services.dataset_service import DatasetService
-from app.utils.enums import StorageType, UploadStatus
-from app.schemas.document_schema import RequestUploadDetailsRequest, CompleteUploadRequest
+from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.schemas.document_schema import (
+    RequestUploadDetailsRequest,
+    CompleteUploadRequest,
+)
 from app.services.storage_service import StorageService
 from app.core.exceptions import (
     ValidationException,
@@ -100,6 +103,28 @@ class DocumentService:
             if isinstance(e, DocumentNotFoundException):
                 raise
             raise ValidationException(f"Invalid document ID: {document_id}")
+
+    @staticmethod
+    async def get_documents_by_dataset(
+        dataset_id: PydanticObjectId,
+        skip: int = 0,
+        limit: int = 100,
+    ) -> list[Document]:
+        """
+        Get all documents for a specific dataset with pagination
+
+        Args:
+            dataset_id: Dataset ID
+            skip: Number of records to skip
+            limit: Maximum number of records to return
+
+        Returns:
+            List of document objects
+        """
+        await DatasetService.get_dataset_by_id(dataset_id)
+
+        documents = await Document.find(Document.dataset_id == dataset_id).skip(skip).limit(limit).to_list()
+        return documents
 
 
 async def _create_document(
