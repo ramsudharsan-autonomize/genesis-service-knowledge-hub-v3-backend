@@ -3,35 +3,17 @@
 import logging
 from datetime import datetime, timezone
 from beanie import PydanticObjectId
-from app.models.dataset_model import Dataset
 from app.models.document_model import Document, StorageDetails, SourceDetails, Metadata
+from app.services.dataset_service import DatasetService
 from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
 from app.schemas.document_schema import RequestUploadDetailsRequest, CompleteUploadRequest
 from app.services.storage_service import StorageService
 from app.core.exceptions import (
     ValidationException,
-    DatasetNotFoundException,
     DocumentNotFoundException,
 )
 
 logger = logging.getLogger(__name__)
-
-
-class DatasetValidator:
-    """Validator for dataset-related operations (Single Responsibility)"""
-
-    @staticmethod
-    async def validate_dataset_exists(dataset_id: PydanticObjectId) -> Dataset:
-        """Validate that a dataset exists"""
-        try:
-            dataset = await Dataset.get(dataset_id)
-            if not dataset:
-                raise DatasetNotFoundException(f"Dataset with ID {dataset_id} not found")
-            return dataset
-        except Exception as e:
-            if isinstance(e, DatasetNotFoundException):
-                raise
-            raise ValidationException(f"Invalid dataset ID: {dataset_id}")
 
 
 class DocumentFactory:
@@ -163,13 +145,11 @@ class DocumentService:
     def __init__(
         self,
         storage_service: StorageService | None = None,
-        dataset_validator: DatasetValidator | None = None,
         document_factory: DocumentFactory | None = None,
         document_repository: DocumentRepository | None = None,
         upload_verifier: UploadVerifier | None = None,
     ):
         self.storage_service = storage_service or StorageService()
-        self.dataset_validator = dataset_validator or DatasetValidator()
         self.document_factory = document_factory or DocumentFactory()
         self.document_repository = document_repository or DocumentRepository()
         self.upload_verifier = upload_verifier or UploadVerifier()
@@ -185,7 +165,7 @@ class DocumentService:
         4. Returns response with document ID and URL
         """
         # Step 1: Validate dataset
-        dataset = await self.dataset_validator.validate_dataset_exists(request.dataset_id)
+        dataset = await DatasetService.get_dataset_by_id(request.dataset_id)
 
         # Step 2: Prepare storage configuration
         storage_config = self.storage_service.get_default_storage_config()
