@@ -3,10 +3,10 @@
 import logging
 from datetime import datetime, timezone
 from beanie import PydanticObjectId
-from app.models.dataset import Dataset
-from app.models.document import Document, StorageDetails, SourceDetails, Metadata
-from app.models.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
-from app.schemas.document import RequestUploadRequest, CompleteUploadRequest, RequestUploadResponse
+from app.models.dataset_model import Dataset
+from app.models.document_model import Document, StorageDetails, SourceDetails, Metadata
+from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.schemas.document_schema import RequestUploadRequest, CompleteUploadRequest, RequestUploadResponse
 from app.services.storage_service import StorageService
 from app.core.exceptions import (
     ValidationException,

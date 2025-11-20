@@ -1,7 +1,7 @@
 """Utility functions for converting models to responses"""
 
-from app.models.document import Document
-from app.schemas.document import (
+from app.models.document_model import Document
+from app.schemas.document_schema import (
     DocumentResponse,
     StorageDetailsResponse,
     SourceDetailsResponse,

@@ -4,8 +4,8 @@ from datetime import datetime, timezone
 from beanie import PydanticObjectId
 from beanie.operators import Set
 
-from app.models.dataset import Dataset
-from app.schemas.dataset import DatasetCreateRequest, DatasetUpdateRequest
+from app.models.dataset_model import Dataset
+from app.schemas.dataset_schema import DatasetCreateRequest, DatasetUpdateRequest
 from app.core.exceptions import DatasetNotFoundException, DatasetAlreadyExistsException
 from app.utils.enums import DatasetStatus
 

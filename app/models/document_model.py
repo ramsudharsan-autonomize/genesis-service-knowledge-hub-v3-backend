@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from app.models.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
 
 pydantic_config = ConfigDict(
     populate_by_name=True,

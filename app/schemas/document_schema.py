@@ -2,7 +2,7 @@
 
 from datetime import datetime
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from app.models.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
 from app.utils.schema_utils import NonEmptyStr
 
 pydantic_config = ConfigDict(

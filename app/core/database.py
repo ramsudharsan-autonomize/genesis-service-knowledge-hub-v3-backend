@@ -3,8 +3,8 @@ import logging
 from motor.motor_asyncio import AsyncIOMotorClient
 from beanie import init_beanie
 from app.core.config import settings
-from app.models.dataset import Dataset
-from app.models.document import Document
+from app.models.dataset_model import Dataset
+from app.models.document_model import Document
 
 logger = logging.getLogger(__name__)
 

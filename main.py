@@ -1,8 +1,8 @@
 from fastapi import FastAPI
 from contextlib import asynccontextmanager
 from app.core.database import init_db
-from app.routes.dataset import router as dataset_router
-from app.routes.document import router as document_router
+from app.routes.dataset_routes import router as dataset_router
+from app.routes.document_routes import router as document_router
 
 
 @asynccontextmanager
