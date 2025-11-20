@@ -113,7 +113,9 @@ async def update_dataset(dataset_id: PydanticObjectId, data: DatasetUpdateReques
     response_model=DatasetPipelinesResponse,
     summary="Get all pipelines attached to a dataset",
 )
-async def get_dataset_pipelines(dataset_id: PydanticObjectId) -> DatasetPipelinesResponse:
+async def get_dataset_pipelines(
+    dataset_id: PydanticObjectId,
+) -> DatasetPipelinesResponse:
     """
     Get all pipelines attached to a specific dataset
 
@@ -133,7 +135,9 @@ async def get_dataset_pipelines(dataset_id: PydanticObjectId) -> DatasetPipeline
 
 
 @router.patch(
-    "/{dataset_id}/add-pipeline", summary="Add a pipeline to a dataset", response_model=DatasetAddPipelineResponse
+    "/{dataset_id}/add-pipeline",
+    summary="Add a pipeline to a dataset",
+    response_model=DatasetAddPipelineResponse,
 )
 async def add_pipeline_to_dataset(
     dataset_id: PydanticObjectId, data: DatasetAddPipelineRequest
@@ -158,7 +162,8 @@ async def add_pipeline_to_dataset(
     summary="Delete a dataset",
 )
 async def delete_dataset(
-    dataset_id: PydanticObjectId, permanent: bool = Query(False, description="Permanently delete (hard delete) if True")
+    dataset_id: PydanticObjectId,
+    permanent: bool = Query(False, description="Permanently delete (hard delete) if True"),
 ):
     """
     Delete a dataset
