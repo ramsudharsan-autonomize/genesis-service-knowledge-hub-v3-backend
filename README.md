@@ -44,6 +44,11 @@ cd genesis_common_utility
 poetry install
 cd ..
 ```
+One might need to repoint/reinstall their genesis-common-utility (if it was used in another project.)
+
+```bash
+  uv pip install -e ./genesis_common_utility
+```
 
 4. Install dependencies:
 ```bash
