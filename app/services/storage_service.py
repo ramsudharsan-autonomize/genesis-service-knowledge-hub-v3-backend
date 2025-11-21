@@ -22,7 +22,7 @@ class StorageService:
         Returns:
             Storage path string
         """
-        return f"knowledge_hub_v3/{dataset_name}/{filename}"
+        return f"datasets/{dataset_name}/{filename}"
 
     @staticmethod
     async def get_upload_signed_url(
