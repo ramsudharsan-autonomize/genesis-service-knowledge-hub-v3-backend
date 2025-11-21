@@ -28,7 +28,7 @@ A FastAPI-based backend service for managing datasets and documents in Knowledge
 
 1. Clone the repository:
 ```bash
-git clone <https://github.com/ramsudharsan-autonomize/genesis-service-knowledge-hub-v3-backend>
+git clone --recurse-submodules <URL>
 cd genesis-service-knowledge-hub-v3-backend
 ```
 
@@ -38,7 +38,14 @@ cp .env.example .env
 # Edit .env with your MongoDB connection string and other settings
 ```
 
-3. Install dependencies:
+3. Initialize submodule:
+```bash
+cd genesis_common_utility
+poetry install
+cd ..
+```
+
+4. Install dependencies:
 ```bash
 uv sync
 ```
@@ -47,7 +54,7 @@ uv sync
 
 Start the development server:
 ```bash
-uv run uvicorn main:app --reload 
+fastapi dev main.py
 ```
 
 The API will be available at `http://localhost:8000`
@@ -56,19 +63,6 @@ The API will be available at `http://localhost:8000`
 
 Once the server is running, visit:
 - **Swagger UI**: `http://localhost:8000/docs`
-- **ReDoc**: `http://localhost:8000/redoc`
-
-## API Endpoints
-
-### Datasets
-- `POST /api/v3/knowledge_hub/datasets` - Create a new dataset
-- `GET /api/v3/knowledge_hub/datasets` - List all datasets
-- `GET /api/v3/knowledge_hub/datasets/{id}` - Get a specific dataset
-
-### Documents
-- `POST /api/v3/knowledge_hub/documents` - Create a new document
-- `GET /api/v3/knowledge_hub/documents` - List all documents
-- `GET /api/v3/knowledge_hub/documents/{id}` - Get a specific document
 
 ## Project Structure
 
@@ -81,7 +75,7 @@ Once the server is running, visit:
 │   ├── schemas/       # Pydantic schemas for request/response
 │   ├── services/      # Business logic layer
 │   └── utils/         # Utility functions
-├── genesis_common_utility/  # Shared utilities
+├── genesis_common_utility/  # Shared utilities submodule
 ├── main.py            # Application entry point
 └── pyproject.toml     # Project dependencies and metadata
 ```
@@ -96,6 +90,4 @@ uv run pytest
 ### Code Style
 This project follows standard Python conventions and uses FastAPI best practices.
 
-```bash
-For linting and formatting use Ruff Linter.
-```
+**For linting and formatting install `ruff` plugin in IDE.**
