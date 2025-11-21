@@ -1,10 +1,12 @@
 """Custom exceptions for the application"""
 
+from beanie import PydanticObjectId
+
 
 class BaseAppException(Exception):
     """Base exception for application errors"""
 
-    def __init__(self, message: str, error_code: str = None):
+    def __init__(self, message: str, error_code: str = ""):
         self.message = message
         self.error_code = error_code
         super().__init__(self.message)
@@ -13,7 +15,7 @@ class BaseAppException(Exception):
 class DatasetNotFoundException(BaseAppException):
     """Raised when a dataset is not found"""
 
-    def __init__(self, dataset_id: str):
+    def __init__(self, dataset_id: PydanticObjectId):
         super().__init__(message=f"Dataset with ID '{dataset_id}' not found", error_code="DATASET_NOT_FOUND")
 
 

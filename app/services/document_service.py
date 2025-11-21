@@ -6,7 +6,7 @@ from beanie import PydanticObjectId
 from app.factories.document_factory import DocumentFactory
 from app.models.document_model import Document
 from app.services.dataset_service import DatasetService
-from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.utils.enums import StorageType, UploadStatus
 from app.schemas.document_schema import (
     RequestUploadDetailsRequest,
     CompleteUploadRequest,

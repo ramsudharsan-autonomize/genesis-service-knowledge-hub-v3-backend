@@ -23,7 +23,7 @@ class DocumentFactory:
     @staticmethod
     def create_source_details(
         source_type: SourceType,
-        data_source_id: str | None,
+        data_source_id: PydanticObjectId | None,
         external_path: str | None,
     ) -> SourceDetails:
         """Create SourceDetails object"""
