@@ -127,6 +127,32 @@ class DocumentService:
         documents = await Document.find(Document.dataset_id == dataset_id).skip(skip).limit(limit).to_list()
         return documents
 
+    @staticmethod
+    async def update_processing_status(document_id: PydanticObjectId, processing_status: str) -> Document:
+        """
+        Update document processing status
+
+        Args:
+            document_id: Document ID
+            processing_status: New processing status
+
+        Returns:
+            Updated document
+
+        Raises:
+            DocumentNotFoundException: If document not found
+        """
+        from app.utils.enums import ProcessingStatus
+
+        document = await DocumentService.get_document_by_id(document_id)
+
+        document.processing_status = ProcessingStatus(processing_status)
+        document.updated_at = datetime.now(timezone.utc)
+
+        await document.save()
+
+        return document
+
 
 async def _create_document(
     request: RequestUploadDetailsRequest,
@@ -233,6 +259,8 @@ async def _finalize_upload(
 
 async def _trigger_pipeline(document: Document) -> None:
     """Trigger the processing pipeline for an uploaded document"""
+    from app.utils.enums import ProcessingStatus
+
     try:
         storage_config = StorageService.get_default_storage_config()
 
@@ -252,9 +280,17 @@ async def _trigger_pipeline(document: Document) -> None:
             session_id=session_id,
         )
 
-        logger.info(f"Pipeline triggered for document: {document.id}")
+        # Update status to PROCESSING after successful trigger
+        document.processing_status = ProcessingStatus.PROCESSING
+        document.updated_at = datetime.now(timezone.utc)
+        await document.save()
+
+        logger.info(f"Pipeline triggered for document: {document.id}, status updated to PROCESSING")
 
     except Exception as e:
-
         # maybe we can implement a retry mech here? @Ram
+        document.processing_status = ProcessingStatus.ERROR
+        document.updated_at = datetime.now(timezone.utc)
+        await document.save()
         logger.error(f"Failed to trigger pipeline for document {document.id}: {str(e)}")
+        logger.error("&status updated to ERRORED")

@@ -90,6 +90,16 @@ class CompleteUploadRequest(BaseModel):
     model_config = pydantic_config
 
 
+class UpdateProcessingStatusRequest(BaseModel):
+    """Request schema for updating document processing status"""
+
+    processing_status: ProcessingStatus = Field(
+        ..., alias="processingStatus", description="New processing status"
+    )
+
+    model_config = pydantic_config
+
+
 class StorageDetailsResponse(BaseModel):
     """Response schema for storage details"""
 
