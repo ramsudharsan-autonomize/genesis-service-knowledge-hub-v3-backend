@@ -1,3 +1,7 @@
+from dotenv import load_dotenv
+
+load_dotenv()
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from genesis_common_utility.config.app_config import AppConfig
