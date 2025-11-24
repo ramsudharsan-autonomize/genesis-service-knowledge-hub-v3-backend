@@ -5,8 +5,10 @@ description = "Knowledge hub v3 backend"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
+    "azure-identity>=1.25.1",
     "beanie>=2.0.0",
     "fastapi[standard]>=0.121.2",
+    "google-cloud-storage>=3.6.0",
     "motor>=3.7.1",
     "pydantic-settings>=2.12.0",
 ]
