@@ -54,6 +54,9 @@ async def get_dataset(dataset_id: PydanticObjectId) -> DatasetResponse:
     Get a specific dataset by ID
 
     - **dataset_id**: The ID of the dataset to retrieve
+
+    Note: This returns basic dataset information including pipeline_ids.
+    For detailed pipeline information, use GET /datasets/{dataset_id}/pipelines
     """
     try:
         dataset = await DatasetService.get_dataset_by_id(dataset_id)
@@ -119,16 +122,17 @@ async def get_dataset_pipelines(
     dataset_id: PydanticObjectId,
 ) -> DatasetPipelinesResponse:
     """
-    Get all pipelines attached to a specific dataset
+    Get all pipelines attached to a specific dataset with detailed information
 
     - **dataset_id**: The ID of the dataset
     """
     try:
-        dataset = await DatasetService.get_pipelines_by_dataset(dataset_id)
+        dataset, pipelines = await DatasetService.get_pipelines_by_dataset(dataset_id)
         response = DatasetPipelinesResponse(
             dataset_id=dataset.id,
             dataset_name=dataset.name,
             pipeline_ids=dataset.pipeline_ids,
+            pipelines=pipelines,
             pipeline_count=len(dataset.pipeline_ids),
         )
         return response

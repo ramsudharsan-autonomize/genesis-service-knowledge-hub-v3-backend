@@ -12,6 +12,7 @@ from app.schemas.document_schema import (
     CompleteUploadRequest,
 )
 from app.services.storage_service import StorageService
+from app.services.pipeline_service import PipelineService
 from app.core.exceptions import (
     ValidationException,
     DocumentNotFoundException,
@@ -223,4 +224,37 @@ async def _finalize_upload(
 
     await document.save()
     logger.info(f"Completed upload for document: {document.id}")
+
+    # Trigger pipeline for document processing
+    await _trigger_pipeline(document)
+
     return document
+
+
+async def _trigger_pipeline(document: Document) -> None:
+    """Trigger the processing pipeline for an uploaded document"""
+    try:
+        storage_config = StorageService.get_default_storage_config()
+
+        # Get read signed URL for the document
+        document_url = StorageService.get_read_signed_url(
+            file_name=document.storage.path,
+            storage_type=storage_config["storage_type"],
+            container_name=document.storage.container,
+            storage_account=storage_config["storage_account"],
+        )
+
+        # Use document ID as session ID for tracking
+        session_id = str(document.id)
+
+        await PipelineService.trigger_pipeline(
+            document_url=document_url,
+            session_id=session_id,
+        )
+
+        logger.info(f"Pipeline triggered for document: {document.id}")
+
+    except Exception as e:
+
+        # maybe we can implement a retry mech here? @Ram
+        logger.error(f"Failed to trigger pipeline for document {document.id}: {str(e)}")

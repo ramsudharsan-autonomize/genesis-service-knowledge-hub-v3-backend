@@ -71,3 +71,35 @@ class StorageService:
             "storage_account": settings.STORAGE_ACCOUNT,
             "container": settings.STORAGE_CONTAINER,
         }
+
+    @staticmethod
+    def get_read_signed_url(
+        file_name: str,
+        storage_type: str,
+        container_name: str,
+        storage_account: str,
+    ) -> str:
+        """
+        Get signed URL for reading/downloading a file from cloud storage.
+
+        Args:
+            file_name: Path to the file in storage
+            storage_type: Type of storage (e.g., 'azureblobstorage')
+            container_name: Storage container name
+            storage_account: Storage account name
+
+        Returns:
+            Signed URL for reading the file
+        """
+        request_payload = {
+            "fileName": file_name,
+            "sourceDetails": {
+                "containerName": container_name,
+                "storageAccount": storage_account,
+            },
+            "sourceType": storage_type,
+        }
+
+        signed_url = FlexstoreService.get_read_signed_url(request_payload)
+        logger.info(f"Read signed URL for {file_name} generated.")
+        return signed_url
