@@ -38,3 +38,10 @@ class DocumentNotFoundException(BaseAppException):
 
     def __init__(self, message: str):
         super().__init__(message=message, error_code="DOCUMENT_NOT_FOUND")
+
+
+class PipelineRunNotFoundException(BaseAppException):
+    """Raised when a pipeline run is not found"""
+
+    def __init__(self, run_id: PydanticObjectId):
+        super().__init__(message=f"Pipeline run with ID '{run_id}' not found", error_code="PIPELINE_RUN_NOT_FOUND")

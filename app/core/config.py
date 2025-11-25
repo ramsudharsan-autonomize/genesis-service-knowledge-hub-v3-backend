@@ -21,6 +21,11 @@ class Settings(BaseSettings):
     # Flexstore Service Configuration
     FLEXSTORE_SERVICE_BASE_URL: str
 
+    # Pipeline Configuration (LangFlow)
+    PIPELINE_API_KEY: str
+    PIPELINE_BASE_URL: str
+    PIPELINE_RUN_TIMEOUT_SECONDS: int = 300  # Default 5 minutes
+
     model_config = SettingsConfigDict(env_file=".env")
 
 

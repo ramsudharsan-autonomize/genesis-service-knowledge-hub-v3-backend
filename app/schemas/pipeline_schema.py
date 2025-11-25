@@ -1,7 +1,9 @@
 """Pipeline schemas for request/response validation"""
 
 from datetime import datetime
+from beanie import PydanticObjectId
 from pydantic import BaseModel, Field
+from app.utils.enums import ProcessingStatus
 
 
 class PipelineInfo(BaseModel):
@@ -24,3 +26,15 @@ class PipelineListResponse(BaseModel):
 
     pipelines: list[PipelineInfo]
     total: int
+
+
+class PipelineExecutionResult(BaseModel):
+    """Result of a single pipeline execution"""
+
+    pipeline_id: str = Field(..., alias="pipelineId")
+    run_id: PydanticObjectId = Field(..., alias="runId")
+    status: ProcessingStatus
+    error_message: str | None = Field(default=None, alias="errorMessage")
+
+    class Config:
+        populate_by_name = True

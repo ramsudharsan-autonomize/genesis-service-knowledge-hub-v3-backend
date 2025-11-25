@@ -1,21 +1,20 @@
 """Pipeline service for triggering document processing pipelines"""
 
+import asyncio
 import logging
 from beanie import PydanticObjectId
 import httpx
+from app.core.config import settings
 from app.models.dataset_model import Dataset
-from app.models.document_model import Document
-from app.schemas.pipeline_schema import PipelineInfo
+from app.models.document_pipeline_run_model import DocumentPipelineRun
+from app.schemas.pipeline_schema import PipelineInfo, PipelineExecutionResult
 from app.services.dataset_service import DatasetService
+from app.services.document_service import DocumentService
+from app.services.document_pipeline_run_service import DocumentPipelineRunService
 from app.services.storage_service import StorageService
+from app.utils.enums import ProcessingStatus
 
 logger = logging.getLogger(__name__)
-
-# TODO: Move to config/env when ready hardcoded it for the time being with-
-# the one example that Ram used
-PIPELINE_RUN_ID = "acb4a50c-6a94-4bdc-b968-c79a55dce770"
-PIPELINE_API_KEY = "sk-MLfyw35NdI8zbWcUJug_jdYIwG4bdPC3KqX6EWCGc6I"
-PIPELINE_BASE_URL = "https://api-ai-studio.dev-v2.autonomize.ai/api/v1"
 
 
 class PipelineService:
@@ -48,63 +47,6 @@ class PipelineService:
 
         return dataset, pipelines
 
-
-    @staticmethod
-    async def trigger_dataset_pipelines(document: Document):
-        dataset = await DatasetService.get_dataset_by_id(document.dataset_id)
-        storage_config = StorageService.get_default_storage_config()
-
-        # Get read signed URL for the document
-        document_url = StorageService.get_read_signed_url(
-            file_name=document.storage.path,
-            storage_type=storage_config["storage_type"],
-            container_name=document.storage.container,
-            storage_account=storage_config["storage_account"],
-        )
-        # TODO
-
-
-    @staticmethod
-    async def trigger_pipeline(document_url: str, session_id: str) -> dict:
-        """
-        Trigger the pipeline to process an uploaded document.
-
-        Args:
-            document_url: Signed URL to the uploaded document
-            session_id: Unique session identifier (e.g., dataset_id or document_id)
-
-        Returns:
-            Pipeline response data
-        """
-        url = f"{PIPELINE_BASE_URL}/run/{PIPELINE_RUN_ID}?stream=false"
-
-        sample_payload = {
-            "output_type": "chat",
-            "input_type": "chat",
-            "input_value": "Process this document",
-            "tweaks": {"FilePathInput-dZGhC": {"input_value": document_url}},
-            "session_id": session_id,
-        }
-
-        headers = {"Content-Type": "application/json", "x-api-key": PIPELINE_API_KEY}
-
-        async with httpx.AsyncClient(timeout=60.0) as client:
-            try:
-                logger.info(f"Triggering pipeline for session: {session_id}")
-                response = await client.post(url, json=sample_payload, headers=headers)
-                response.raise_for_status()
-
-                result = response.json()
-                logger.info(f"Pipeline triggered successfully for session: {session_id}")
-                return result
-
-            except httpx.HTTPStatusError as e:
-                logger.error(f"Pipeline trigger failed with status {e.response.status_code}: {e.response.text}")
-                raise
-            except Exception as e:
-                logger.error(f"Pipeline trigger error: {str(e)}")
-                raise
-
     @staticmethod
     async def get_all_pipelines() -> list[PipelineInfo]:
         """
@@ -113,9 +55,9 @@ class PipelineService:
         Returns:
             List of pipeline information objects
         """
-        url = f"{PIPELINE_BASE_URL}/flows/"
+        url = f"{settings.PIPELINE_BASE_URL}/flows/"
         headers = {
-            "x-api-key": PIPELINE_API_KEY,
+            "x-api-key": settings.PIPELINE_API_KEY,
             "Accept-Encoding": "gzip, deflate",
         }
 
@@ -161,9 +103,9 @@ class PipelineService:
         Returns:
             Pipeline information or None if not found
         """
-        url = f"{PIPELINE_BASE_URL}/flows/{pipeline_id}"
+        url = f"{settings.PIPELINE_BASE_URL}/flows/{pipeline_id}"
         headers = {
-            "x-api-key": PIPELINE_API_KEY,
+            "x-api-key": settings.PIPELINE_API_KEY,
             "Accept-Encoding": "gzip, deflate",
         }
 
@@ -217,3 +159,195 @@ class PipelineService:
                 pipelines.append(pipeline)
 
         return pipelines
+
+    @staticmethod
+    async def trigger_all_pipelines_for_document(
+        document_id: PydanticObjectId,
+    ) -> list[PipelineExecutionResult]:
+        """
+        Trigger all pipelines for a document in parallel.
+
+        This method:
+        1. Gets the document and its storage details from MongoDB
+        2. Gets all pipeline IDs from the dataset
+        3. Creates DocumentPipelineRun records (PENDING)
+        4. Generates a signed URL for the document
+        5. Triggers all pipelines in parallel
+        6. Updates each run's status based on result
+
+        Args:
+            document_id: The document ID
+
+        Returns:
+            List of PipelineExecutionResult with status for each pipeline
+
+        Raises:
+            DocumentNotFoundException: If document not found
+            DatasetNotFoundException: If dataset not found
+            ValidationException: If any other error occurs
+        """
+        try:
+            # Step 1: Get document from MongoDB using DocumentService
+            document = await DocumentService.get_document_by_id(document_id)
+
+            # Step 2: Get dataset and its pipeline IDs
+            dataset = await DatasetService.get_dataset_by_id(document.dataset_id)
+
+            if not dataset.pipeline_ids:
+                logger.info(f"No pipelines configured for dataset {document.dataset_id}")
+                return []
+
+            # Step 3: Create pipeline run records (batch insert, PENDING status)
+            runs = await DocumentPipelineRunService.create_pipeline_runs_for_document(
+                document_id=document_id,
+                dataset_id=document.dataset_id,
+                pipeline_ids=dataset.pipeline_ids,
+            )
+
+            if not runs:
+                return []
+
+            # Step 4: Generate signed URL for the document using storage details from document
+            storage_config = StorageService.get_default_storage_config()
+            document_url = StorageService.get_read_signed_url(
+                file_name=document.storage.path,
+                storage_type=document.storage.type.value,
+                container_name=document.storage.container,
+                storage_account=storage_config["storage_account"],
+            )
+
+            # Step 5: Trigger all pipelines in parallel
+            tasks = [_execute_single_pipeline(run, document_url) for run in runs]
+
+            results = await asyncio.gather(*tasks, return_exceptions=False)
+
+            logger.info(f"Completed processing {len(results)} pipelines for document {document_id}")
+            return results
+
+        except Exception as e:
+            logger.error(f"Failed to trigger pipelines for document {document_id}: {e}")
+            raise
+
+
+async def _execute_single_pipeline(
+    run: DocumentPipelineRun,
+    document_url: str,
+) -> PipelineExecutionResult:
+    """
+    Execute a single pipeline and update its status.
+
+    Args:
+        run: The DocumentPipelineRun record
+        document_url: Signed URL to the document
+        session_id: Session ID for the pipeline (usually document_id)
+
+    Returns:
+        PipelineExecutionResult with the execution outcome
+    """
+    pipeline_id = run.pipeline_id
+
+    try:
+        # Update status to PROCESSING
+        await DocumentPipelineRunService.update_run_status_by_instance(
+            run=run,
+            status=ProcessingStatus.PROCESSING,
+        )
+
+        # Trigger the pipeline
+        await _call_langflow_pipeline(
+            pipeline_id=pipeline_id,
+            document_url=document_url,
+            run_id=run.id,
+        )
+
+        # Update status to PROCESSED
+        await DocumentPipelineRunService.update_run_status_by_instance(
+            run=run,
+            status=ProcessingStatus.PROCESSED,
+        )
+
+        logger.info(f"Pipeline {pipeline_id} completed successfully for run {run.id}")
+        return PipelineExecutionResult(
+            pipeline_id=pipeline_id,
+            run_id=run.id,
+            status=ProcessingStatus.PROCESSED,
+        )
+
+    except Exception as e:
+        error_message = str(e)
+        logger.error(f"Pipeline {pipeline_id} failed for run {run.id}: {error_message}")
+
+        # Update status to ERROR
+        try:
+            await DocumentPipelineRunService.update_run_status_by_instance(
+                run=run,
+                status=ProcessingStatus.ERROR,
+                error_message=error_message,
+            )
+        except Exception as update_error:
+            logger.error(f"Failed to update error status for run {run.id}: {update_error}")
+
+        return PipelineExecutionResult(
+            pipeline_id=pipeline_id,
+            run_id=run.id,
+            status=ProcessingStatus.ERROR,
+            error_message=error_message,
+        )
+
+
+async def _call_langflow_pipeline(
+    pipeline_id: str,
+    document_url: str,
+    run_id: str,
+) -> dict:
+    """
+    Call the LangFlow API to run a pipeline.
+
+    Args:
+        pipeline_id: The LangFlow pipeline/flow ID
+        document_url: Signed URL to the document
+        session_id: Session identifier
+
+    Returns:
+        Pipeline response data
+
+    Raises:
+        httpx.HTTPStatusError: If the API call fails
+        Exception: For any other errors
+    """
+    url = f"{settings.PIPELINE_BASE_URL}/run/{pipeline_id}?stream=false"
+
+    # TODO: These tweaks may need to be configurable per pipeline
+    payload = {
+        "output_type": "chat",
+        "input_type": "text",
+        "input_value": document_url,
+        "session_id": run_id,
+    }
+
+    headers = {
+        "Content-Type": "application/json",
+        "x-api-key": settings.PIPELINE_API_KEY,
+    }
+
+    timeout = float(settings.PIPELINE_RUN_TIMEOUT_SECONDS)
+
+    try:
+        async with httpx.AsyncClient(timeout=timeout) as client:
+            logger.info(f"Calling LangFlow pipeline {pipeline_id} for session {run_id}")
+            response = await client.post(url, json=payload, headers=headers)
+            response.raise_for_status()
+
+            result = response.json()
+            logger.info(f"LangFlow pipeline {pipeline_id} returned successfully")
+            return result
+
+    except httpx.TimeoutException as e:
+        logger.error(f"Pipeline {pipeline_id} timed out for session {run_id}")
+        raise Exception(f"Pipeline request timed out after {timeout} seconds") from e
+    except httpx.HTTPStatusError as e:
+        logger.error(f"Pipeline {pipeline_id} failed with status {e.response.status_code}: {e.response.text}")
+        raise Exception(f"Pipeline API returned {e.response.status_code}: {e.response.text}") from e
+    except Exception as e:
+        logger.error(f"Pipeline {pipeline_id} error for session {run_id}: {e}")
+        raise
