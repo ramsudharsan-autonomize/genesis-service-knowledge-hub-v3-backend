@@ -2,7 +2,10 @@
 
 import logging
 import httpx
+from app.models.document_model import Document
 from app.schemas.pipeline_schema import PipelineInfo
+from app.services.dataset_service import DatasetService
+from app.services.storage_service import StorageService
 
 logger = logging.getLogger(__name__)
 
@@ -15,6 +18,21 @@ PIPELINE_BASE_URL = "https://api-ai-studio.dev-v2.autonomize.ai/api/v1"
 
 class PipelineService:
     """Service for triggering, populating and everything related to document processing pipelines"""
+
+    @staticmethod
+    async def trigger_dataset_pipelines(document: Document):
+        dataset = await DatasetService.get_dataset_by_id(document.dataset_id)
+        storage_config = StorageService.get_default_storage_config()
+
+        # Get read signed URL for the document
+        document_url = StorageService.get_read_signed_url(
+            file_name=document.storage.path,
+            storage_type=storage_config["storage_type"],
+            container_name=document.storage.container,
+            storage_account=storage_config["storage_account"],
+        )
+        # TODO
+
 
     @staticmethod
     async def trigger_pipeline(document_url: str, session_id: str) -> dict:

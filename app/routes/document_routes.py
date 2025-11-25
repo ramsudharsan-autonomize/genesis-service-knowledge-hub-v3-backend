@@ -6,7 +6,6 @@ from app.schemas.document_schema import (
     RequestUploadDetailsRequest,
     RequestUploadDetailsResponse,
     CompleteUploadRequest,
-    UpdateProcessingStatusRequest,
     DocumentResponse,
 )
 from app.services.document_service import DocumentService
@@ -50,13 +49,13 @@ async def request_upload_details(request: RequestUploadDetailsRequest) -> Reques
 
 
 @router.post(
-    "/{document_id}/complete",
+    "/{document_id}/complete_upload",
     response_model=DocumentResponse,
     status_code=status.HTTP_200_OK,
-    summary="Complete document upload",
+    summary="Complete document upload and trigger dataset pipelines",
     description="Complete the upload process and verify checksums",
 )
-async def complete_upload(
+async def complete_upload_and_trigger_pipelines(
     document_id: PydanticObjectId,
     request: CompleteUploadRequest,
 ) -> DocumentResponse:
@@ -106,30 +105,3 @@ async def get_document(document_id: PydanticObjectId) -> DocumentResponse:
         return response
     except Exception as e:
         handle_exception(e, "retrieving document")
-
-
-@router.patch(
-    "/{document_id}/status",
-    response_model=DocumentResponse,
-    status_code=status.HTTP_200_OK,
-    summary="Update document processing status",
-    description="Update the processing status of a document",
-)
-async def update_processing_status(
-    document_id: PydanticObjectId,
-    request: UpdateProcessingStatusRequest,
-) -> DocumentResponse:
-    """
-    Update document processing status
-
-    We can use thsi end point in AI studio to update document status.
-
-    - **document_id**: ID of the document to update
-    - **processingStatus**: New processing status (pending, processing, processed, error)
-    """
-    try:
-        document = await DocumentService.update_processing_status(document_id, request.processing_status.value)
-        response = DocumentResponse.model_validate(document)
-        return response
-    except Exception as e:
-        handle_exception(e, "updating document status")

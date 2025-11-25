@@ -3,7 +3,7 @@
 from datetime import datetime
 from beanie import PydanticObjectId
 from pydantic import BaseModel, EmailStr, Field, ConfigDict
-from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.utils.enums import StorageType, SourceType, UploadStatus
 from app.utils.schema_utils import NonEmptyStr
 
 pydantic_config = ConfigDict(
@@ -90,17 +90,7 @@ class CompleteUploadRequest(BaseModel):
     model_config = pydantic_config
 
 
-class UpdateProcessingStatusRequest(BaseModel):
-    """Request schema for updating document processing status"""
-
-    processing_status: ProcessingStatus = Field(
-        ..., alias="processingStatus", description="New processing status"
-    )
-
-    model_config = pydantic_config
-
-
-class StorageDetailsResponse(BaseModel):
+class StorageDetailsResponse(BaseModel)
     """Response schema for storage details"""
 
     type: StorageType
@@ -148,9 +138,6 @@ class DocumentResponse(BaseModel):
     metadata: MetadataResponse
 
     upload_status: UploadStatus = Field(..., serialization_alias="uploadStatus")
-    processing_status: ProcessingStatus = Field(
-        ..., serialization_alias="processingStatus"
-    )
 
     created_at: datetime = Field(..., serialization_alias="createdAt")
     updated_at: datetime = Field(..., serialization_alias="updatedAt")

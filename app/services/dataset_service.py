@@ -224,3 +224,4 @@ class DatasetService:
                 # Return empty pipelines list but don't fail the request
 
         return dataset, pipelines
+

@@ -3,7 +3,7 @@
 from datetime import datetime, timezone
 from beanie import Document, PydanticObjectId
 from pydantic import BaseModel, ConfigDict, EmailStr, Field
-from app.utils.enums import StorageType, SourceType, UploadStatus, ProcessingStatus
+from app.utils.enums import StorageType, SourceType, UploadStatus
 
 pydantic_config = ConfigDict(
     populate_by_name=True,
@@ -63,7 +63,6 @@ class Document(Document):
 
     # Status fields
     upload_status: UploadStatus = Field(default=UploadStatus.UPLOADING, alias="uploadStatus")
-    processing_status: ProcessingStatus = Field(default=ProcessingStatus.PENDING, alias="processingStatus")
 
     # Timestamps
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="createdAt")

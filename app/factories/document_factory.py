@@ -1,7 +1,7 @@
 from beanie import PydanticObjectId
 from app.models.document_model import Document, Metadata, SourceDetails, StorageDetails
 from app.schemas.document_schema import RequestUploadDetailsRequest
-from app.utils.enums import ProcessingStatus, SourceType, StorageType, UploadStatus
+from app.utils.enums import SourceType, StorageType, UploadStatus
 
 
 class DocumentFactory:
@@ -56,5 +56,4 @@ class DocumentFactory:
             source=source_details,
             metadata=metadata,
             upload_status=UploadStatus.UPLOADING,
-            processing_status=ProcessingStatus.PENDING,
         )

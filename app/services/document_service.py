@@ -12,7 +12,6 @@ from app.schemas.document_schema import (
     CompleteUploadRequest,
 )
 from app.services.storage_service import StorageService
-from app.services.pipeline_service import PipelineService
 from app.core.exceptions import (
     ValidationException,
     DocumentNotFoundException,
@@ -127,32 +126,6 @@ class DocumentService:
         documents = await Document.find(Document.dataset_id == dataset_id).skip(skip).limit(limit).to_list()
         return documents
 
-    @staticmethod
-    async def update_processing_status(document_id: PydanticObjectId, processing_status: str) -> Document:
-        """
-        Update document processing status
-
-        Args:
-            document_id: Document ID
-            processing_status: New processing status
-
-        Returns:
-            Updated document
-
-        Raises:
-            DocumentNotFoundException: If document not found
-        """
-        from app.utils.enums import ProcessingStatus
-
-        document = await DocumentService.get_document_by_id(document_id)
-
-        document.processing_status = ProcessingStatus(processing_status)
-        document.updated_at = datetime.now(timezone.utc)
-
-        await document.save()
-
-        return document
-
 
 async def _create_document(
     request: RequestUploadDetailsRequest,
@@ -212,7 +185,7 @@ async def _verify_checksums(
             document_id=document_id,
         )
     except ValidationException:
-        await _mark_document_as_error(document)
+        await _mark_upload_status_error(document)
         raise
 
 
@@ -230,14 +203,6 @@ def _verify_file_hash(expected: str | None, actual: str, document_id: str) -> No
         raise ValidationException(f"File hash mismatch: expected {expected}, got {actual}")
 
 
-async def _mark_document_as_error(document: Document) -> None:
-    """Mark document as error and save"""
-    document.upload_status = UploadStatus.ERROR
-    document.updated_at = datetime.now(timezone.utc)
-    await document.save()
-    logger.warning(f"Marked document {document.id} as error")
-
-
 async def _finalize_upload(
     document: Document,
     request: CompleteUploadRequest,
@@ -250,47 +215,12 @@ async def _finalize_upload(
 
     await document.save()
     logger.info(f"Completed upload for document: {document.id}")
-
-    # Trigger pipeline for document processing
-    await _trigger_pipeline(document)
-
     return document
 
 
-async def _trigger_pipeline(document: Document) -> None:
-    """Trigger the processing pipeline for an uploaded document"""
-    from app.utils.enums import ProcessingStatus
-
-    try:
-        storage_config = StorageService.get_default_storage_config()
-
-        # Get read signed URL for the document
-        document_url = StorageService.get_read_signed_url(
-            file_name=document.storage.path,
-            storage_type=storage_config["storage_type"],
-            container_name=document.storage.container,
-            storage_account=storage_config["storage_account"],
-        )
-
-        # Use document ID as session ID for tracking
-        session_id = str(document.id)
-
-        await PipelineService.trigger_pipeline(
-            document_url=document_url,
-            session_id=session_id,
-        )
-
-        # Update status to PROCESSING after successful trigger
-        document.processing_status = ProcessingStatus.PROCESSING
-        document.updated_at = datetime.now(timezone.utc)
-        await document.save()
-
-        logger.info(f"Pipeline triggered for document: {document.id}, status updated to PROCESSING")
-
-    except Exception as e:
-        # maybe we can implement a retry mech here? @Ram
-        document.processing_status = ProcessingStatus.ERROR
-        document.updated_at = datetime.now(timezone.utc)
-        await document.save()
-        logger.error(f"Failed to trigger pipeline for document {document.id}: {str(e)}")
-        logger.error("&status updated to ERRORED")
+async def _mark_upload_status_error(document: Document) -> None:
+    """Mark document as error and save"""
+    document.upload_status = UploadStatus.ERROR
+    document.updated_at = datetime.now(timezone.utc)
+    await document.save()
+    logger.warning(f"Marked document {document.id} as error")
