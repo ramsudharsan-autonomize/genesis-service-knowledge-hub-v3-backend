@@ -1,7 +1,9 @@
 """Pipeline service for triggering document processing pipelines"""
 
 import logging
+from beanie import PydanticObjectId
 import httpx
+from app.models.dataset_model import Dataset
 from app.models.document_model import Document
 from app.schemas.pipeline_schema import PipelineInfo
 from app.services.dataset_service import DatasetService
@@ -18,6 +20,34 @@ PIPELINE_BASE_URL = "https://api-ai-studio.dev-v2.autonomize.ai/api/v1"
 
 class PipelineService:
     """Service for triggering, populating and everything related to document processing pipelines"""
+
+    @staticmethod
+    async def get_pipelines_by_dataset(dataset_id: PydanticObjectId) -> tuple[Dataset, list[PipelineInfo]]:
+        """
+        Get all pipelines attached to a dataset with detailed info
+
+        Args:
+            dataset_id: Dataset ID
+
+        Returns:
+            Tuple of (dataset, list of pipeline details)
+
+        Raises:
+            DatasetNotFoundException: If dataset not found
+        """
+        dataset = await DatasetService.get_dataset_by_id(dataset_id)
+
+        # Fetch pipeline details from LangFlow
+        pipelines = []
+        if dataset.pipeline_ids:
+            try:
+                pipelines = await PipelineService.get_pipelines_by_ids(dataset.pipeline_ids)
+            except Exception as e:
+                logger.error(f"Failed to fetch pipeline details: {str(e)}")
+                # Return empty pipelines list but don't fail the request
+
+        return dataset, pipelines
+
 
     @staticmethod
     async def trigger_dataset_pipelines(document: Document):

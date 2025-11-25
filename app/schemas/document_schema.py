@@ -90,7 +90,7 @@ class CompleteUploadRequest(BaseModel):
     model_config = pydantic_config
 
 
-class StorageDetailsResponse(BaseModel)
+class StorageDetailsResponse(BaseModel):
     """Response schema for storage details"""
 
     type: StorageType

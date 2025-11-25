@@ -8,7 +8,6 @@ from app.schemas.dataset_schema import (
     DatasetAddPipelineRequest,
     DatasetAddPipelineResponse,
     DatasetCreateRequest,
-    DatasetPipelinesResponse,
     DatasetResponse,
     DatasetUpdateRequest,
 )
@@ -111,33 +110,6 @@ async def update_dataset(dataset_id: PydanticObjectId, data: DatasetUpdateReques
         return response
     except Exception as e:
         handle_exception(e, "updating the dataset")
-
-
-@router.get(
-    "/{dataset_id}/pipelines",
-    response_model=DatasetPipelinesResponse,
-    summary="Get all pipelines attached to a dataset",
-)
-async def get_dataset_pipelines(
-    dataset_id: PydanticObjectId,
-) -> DatasetPipelinesResponse:
-    """
-    Get all pipelines attached to a specific dataset with detailed information
-
-    - **dataset_id**: The ID of the dataset
-    """
-    try:
-        dataset, pipelines = await DatasetService.get_pipelines_by_dataset(dataset_id)
-        response = DatasetPipelinesResponse(
-            dataset_id=dataset.id,
-            dataset_name=dataset.name,
-            pipeline_ids=dataset.pipeline_ids,
-            pipelines=pipelines,
-            pipeline_count=len(dataset.pipeline_ids),
-        )
-        return response
-    except Exception as e:
-        handle_exception(e, "retrieving pipelines for the dataset")
 
 
 @router.get(
