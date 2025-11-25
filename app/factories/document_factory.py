@@ -10,12 +10,14 @@ class DocumentFactory:
     @staticmethod
     def create_storage_details(
         storage_type: StorageType,
+        storage_account: str,
         container: str,
         storage_path: str,
     ) -> StorageDetails:
         """Create StorageDetails object"""
         return StorageDetails(
             type=storage_type,
+            storage_account=storage_account,
             container=container,
             path=storage_path,
         )

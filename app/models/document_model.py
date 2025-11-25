@@ -15,6 +15,7 @@ class StorageDetails(BaseModel):
     """Embedded document for storage details"""
 
     type: StorageType
+    storage_account: str = Field(..., alias="storageAccount")
     container: str
     path: str
 

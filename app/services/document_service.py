@@ -136,6 +136,7 @@ async def _create_document(
     """Create and save document with all details"""
     storage_details = DocumentFactory.create_storage_details(
         storage_type=storage_type,
+        storage_account=storage_config["storage_account"],
         container=storage_config["container"],
         storage_path=storage_path,
     )

@@ -208,12 +208,11 @@ class PipelineService:
                 return []
 
             # Step 4: Generate signed URL for the document using storage details from document
-            storage_config = StorageService.get_default_storage_config()
             document_url = StorageService.get_read_signed_url(
                 file_name=document.storage.path,
                 storage_type=document.storage.type.value,
                 container_name=document.storage.container,
-                storage_account=storage_config["storage_account"],
+                storage_account=document.storage.storage_account,
             )
 
             # Step 5: Trigger all pipelines in parallel
