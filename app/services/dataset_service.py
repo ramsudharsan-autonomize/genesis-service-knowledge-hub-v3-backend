@@ -1,13 +1,18 @@
 """Service layer for dataset operations - implements business logic"""
 
+import logging
 from datetime import datetime, timezone
 from beanie import PydanticObjectId
 from beanie.operators import Set
 
 from app.models.dataset_model import Dataset
 from app.schemas.dataset_schema import DatasetCreateRequest, DatasetUpdateRequest
+from app.schemas.pipeline_schema import PipelineInfo
 from app.core.exceptions import DatasetNotFoundException, DatasetAlreadyExistsException
 from app.utils.enums import DatasetStatus
+from app.services.pipeline_service import PipelineService
+
+logger = logging.getLogger(__name__)
 
 
 class DatasetService:
@@ -169,14 +174,14 @@ class DatasetService:
 
     @staticmethod
     async def add_pipeline_to_dataset(
-        dataset_id: PydanticObjectId, pipeline_id: PydanticObjectId
+        dataset_id: PydanticObjectId, pipeline_id: str
     ) -> Dataset:
         """
         Add a pipeline to the dataset's pipeline list
 
         Args:
             dataset_id: Dataset ID
-            pipeline_id: Pipeline ID to add
+            pipeline_id: Pipeline UUID to add
 
         Returns:
             Updated dataset document
@@ -194,18 +199,28 @@ class DatasetService:
         return dataset
 
     @staticmethod
-    async def get_pipelines_by_dataset(dataset_id: PydanticObjectId) -> Dataset:
+    async def get_pipelines_by_dataset(dataset_id: PydanticObjectId) -> tuple[Dataset, list[PipelineInfo]]:
         """
-        Get all pipelines attached to a dataset
+        Get all pipelines attached to a dataset with detailed info
 
         Args:
             dataset_id: Dataset ID
 
         Returns:
-            Dataset document with pipeline_ids
+            Tuple of (dataset, list of pipeline details)
 
         Raises:
             DatasetNotFoundException: If dataset not found
         """
         dataset = await DatasetService.get_dataset_by_id(dataset_id)
-        return dataset
+
+        # Fetch pipeline details from LangFlow
+        pipelines = []
+        if dataset.pipeline_ids:
+            try:
+                pipelines = await PipelineService.get_pipelines_by_ids(dataset.pipeline_ids)
+            except Exception as e:
+                logger.error(f"Failed to fetch pipeline details: {str(e)}")
+                # Return empty pipelines list but don't fail the request
+
+        return dataset, pipelines

@@ -20,7 +20,7 @@ class Dataset(Document):
     updated_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="updatedAt")
 
     data_source_id: PydanticObjectId | None = Field(default=None, alias="dataSourceId")
-    pipeline_ids: list[PydanticObjectId] = Field(default_factory=list, alias="pipelineIds")
+    pipeline_ids: list[str] = Field(default_factory=list, alias="pipelineIds", description="LangFlow pipeline UUIDs")
 
     model_config = pydantic_config
 
