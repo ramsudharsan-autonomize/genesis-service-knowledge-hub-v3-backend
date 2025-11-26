@@ -1,12 +1,13 @@
 """Document service for managing document uploads - following SOLID principles"""
 
+import asyncio
 import logging
 from datetime import datetime, timezone
 from beanie import PydanticObjectId
 from app.factories.document_factory import DocumentFactory
 from app.models.document_model import Document
 from app.services.dataset_service import DatasetService
-from app.utils.enums import StorageType, UploadStatus
+from app.utils.enums import ProcessingStatus, StorageType, UploadStatus
 from app.schemas.document_schema import (
     RequestUploadDetailsRequest,
     CompleteUploadRequest,
@@ -78,6 +79,7 @@ class DocumentService:
         2. Verifies it's in uploading state
         3. Validates checksums (size and hash)
         4. Updates document status to uploaded
+        5. Triggers pipeline processing in background (non-blocking)
         """
         # Step 1: Get document
         document = await DocumentService.get_document_by_id(document_id)
@@ -89,7 +91,15 @@ class DocumentService:
         await _verify_checksums(document, request, str(document_id))
 
         # Step 4: Update document
-        return await _finalize_upload(document, request)
+        document = await _finalize_upload(document, request)
+
+        # Step 5: Trigger pipeline processing in background (fire and forget)
+        asyncio.create_task(
+            _trigger_pipelines_background(document_id),
+            name=f"pipeline-trigger-{document_id}",
+        )
+
+        return document
 
     @staticmethod
     async def get_document_by_id(document_id: PydanticObjectId) -> Document:
@@ -225,3 +235,34 @@ async def _mark_upload_status_error(document: Document) -> None:
     document.updated_at = datetime.now(timezone.utc)
     await document.save()
     logger.warning(f"Marked document {document.id} as error")
+
+
+async def _trigger_pipelines_background(document_id: PydanticObjectId) -> None:
+    """
+    Background task to trigger pipeline processing for a document.
+
+    This function is designed to be called via asyncio.create_task() and runs
+    independently of the HTTP request lifecycle. Errors are logged but not raised.
+
+    Args:
+        document_id: The document ID to process
+    """
+    from app.services.pipeline_service import PipelineService
+
+    try:
+        logger.info(f"Starting background pipeline processing for document {document_id}")
+        results = await PipelineService.trigger_all_pipelines_for_document(document_id)
+
+        # Log summary
+        if results:
+            successful = sum(1 for r in results if r.status == ProcessingStatus.PROCESSED)
+            failed = len(results) - successful
+            logger.info(
+                f"Pipeline processing complete for document {document_id}: {successful} succeeded, {failed} failed"
+            )
+        else:
+            logger.info(f"No pipelines to process for document {document_id}")
+
+    except Exception as e:
+        # Log error but don't raise - this is a background task
+        logger.error(f"Background pipeline processing failed for document {document_id}: {e}")

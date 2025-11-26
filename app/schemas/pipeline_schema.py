@@ -38,3 +38,16 @@ class PipelineExecutionResult(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class TriggerPipelinesResponse(BaseModel):
+    """Response for triggering pipelines for a document"""
+
+    document_id: PydanticObjectId = Field(..., alias="documentId")
+    total_pipelines: int = Field(..., alias="totalPipelines")
+    successful: int
+    failed: int
+    results: list[PipelineExecutionResult]
+
+    class Config:
+        populate_by_name = True

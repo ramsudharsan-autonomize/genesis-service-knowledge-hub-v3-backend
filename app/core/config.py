@@ -25,6 +25,8 @@ class Settings(BaseSettings):
     PIPELINE_API_KEY: str
     PIPELINE_BASE_URL: str
     PIPELINE_RUN_TIMEOUT_SECONDS: int = 300  # Default 5 minutes
+    X_LANGFLOW_GLOBAL_VAR_AZURE_OPENAI_EMBEDDING_API_KEY: str
+    X_LANGFLOW_GLOBAL_VAR_QDRANT_API_KEY: str
 
     model_config = SettingsConfigDict(env_file=".env")
 

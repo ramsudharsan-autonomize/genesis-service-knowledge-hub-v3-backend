@@ -210,7 +210,7 @@ class PipelineService:
             # Step 4: Generate signed URL for the document using storage details from document
             document_url = StorageService.get_read_signed_url(
                 file_name=document.storage.path,
-                storage_type=document.storage.type.value,
+                storage_type=document.storage.type,
                 container_name=document.storage.container,
                 storage_account=document.storage.storage_account,
             )
@@ -305,7 +305,7 @@ async def _call_langflow_pipeline(
     Args:
         pipeline_id: The LangFlow pipeline/flow ID
         document_url: Signed URL to the document
-        session_id: Session identifier
+        run_id: Run identifier for session tracking
 
     Returns:
         Pipeline response data
@@ -316,23 +316,24 @@ async def _call_langflow_pipeline(
     """
     url = f"{settings.PIPELINE_BASE_URL}/run/{pipeline_id}?stream=false"
 
-    # TODO: These tweaks may need to be configurable per pipeline
+    # Payload structure matching LangFlow API expectations
+    # The document URL is passed via tweaks to the FilePathInput component
     payload = {
         "output_type": "chat",
-        "input_type": "text",
+        "input_type": "chat",
         "input_value": document_url,
-        "session_id": run_id,
+        "session_id": str(run_id),
     }
 
     headers = {
         "Content-Type": "application/json",
         "x-api-key": settings.PIPELINE_API_KEY,
+        "X-LANGFLOW-GLOBAL-VAR-AZURE_OPENAI_EMBEDDING_API_KEY": settings.X_LANGFLOW_GLOBAL_VAR_AZURE_OPENAI_EMBEDDING_API_KEY,
+        "X-LANGFLOW-GLOBAL-VAR-QUADRANT_API_KEY": settings.X_LANGFLOW_GLOBAL_VAR_QDRANT_API_KEY,
     }
 
-    timeout = float(settings.PIPELINE_RUN_TIMEOUT_SECONDS)
-
     try:
-        async with httpx.AsyncClient(timeout=timeout) as client:
+        async with httpx.AsyncClient(timeout=settings.PIPELINE_RUN_TIMEOUT_SECONDS) as client:
             logger.info(f"Calling LangFlow pipeline {pipeline_id} for session {run_id}")
             response = await client.post(url, json=payload, headers=headers)
             response.raise_for_status()
@@ -343,7 +344,7 @@ async def _call_langflow_pipeline(
 
     except httpx.TimeoutException as e:
         logger.error(f"Pipeline {pipeline_id} timed out for session {run_id}")
-        raise Exception(f"Pipeline request timed out after {timeout} seconds") from e
+        raise Exception(f"Pipeline request timed out after {settings.PIPELINE_RUN_TIMEOUT_SECONDS} seconds") from e
     except httpx.HTTPStatusError as e:
         logger.error(f"Pipeline {pipeline_id} failed with status {e.response.status_code}: {e.response.text}")
         raise Exception(f"Pipeline API returned {e.response.status_code}: {e.response.text}") from e

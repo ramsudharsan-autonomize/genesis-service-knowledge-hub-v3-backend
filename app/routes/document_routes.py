@@ -8,7 +8,9 @@ from app.schemas.document_schema import (
     CompleteUploadRequest,
     DocumentResponse,
 )
+from app.schemas.pipeline_schema import TriggerPipelinesResponse
 from app.services.document_service import DocumentService
+from app.services.pipeline_service import PipelineService
 from app.utils.error_handler import handle_exception
 
 
@@ -105,3 +107,43 @@ async def get_document(document_id: PydanticObjectId) -> DocumentResponse:
         return response
     except Exception as e:
         handle_exception(e, "retrieving document")
+
+
+@router.post(
+    "/{document_id}/trigger-pipelines",
+    response_model=TriggerPipelinesResponse,
+    status_code=status.HTTP_200_OK,
+    summary="Trigger all dataset pipelines for a document",
+    description="Manually trigger all pipelines associated with the document's dataset",
+)
+async def trigger_pipelines_for_document(
+    document_id: PydanticObjectId,
+) -> TriggerPipelinesResponse:
+    """
+    Trigger all dataset pipelines for a document
+
+    This endpoint manually triggers all pipelines associated with the document's dataset.
+    Pipeline execution happens synchronously and results are returned.
+
+    Use cases:
+    - Re-run pipelines after a failed execution
+    - Manually trigger pipelines for testing
+    - Process documents that were uploaded before pipelines were configured
+
+    - **document_id**: ID of the document to process
+    """
+    try:
+        results = await PipelineService.trigger_all_pipelines_for_document(document_id)
+
+        successful = sum(1 for r in results if r.status.value == "processed")
+        failed = len(results) - successful
+
+        return TriggerPipelinesResponse(
+            document_id=document_id,
+            total_pipelines=len(results),
+            successful=successful,
+            failed=failed,
+            results=results,
+        )
+    except Exception as e:
+        handle_exception(e, "triggering pipelines")
