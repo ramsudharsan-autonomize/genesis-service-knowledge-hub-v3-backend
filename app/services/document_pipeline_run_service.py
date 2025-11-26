@@ -186,3 +186,55 @@ class DocumentPipelineRunService:
         except Exception as e:
             logger.error(f"Failed to get pending runs: {e}")
             raise ValidationException(f"Failed to get pending pipeline runs: {str(e)}")
+
+    @staticmethod
+    async def get_all_runs_paginated(
+        page: int = 1,
+        page_size: int = 20,
+        document_id: PydanticObjectId | None = None,
+        dataset_id: PydanticObjectId | None = None,
+        status: ProcessingStatus | None = None,
+    ) -> tuple[list[DocumentPipelineRun], int]:
+        """
+        Get all pipeline runs with pagination and optional filters.
+
+        Args:
+            page: Page number (1-indexed)
+            page_size: Number of items per page
+            document_id: Optional filter by document ID
+            dataset_id: Optional filter by dataset ID
+            status: Optional filter by status
+
+        Returns:
+            Tuple of (list of runs, total count)
+
+        Raises:
+            ValidationException: If query fails
+        """
+        try:
+            # Build query filters
+            filters = {}
+
+            if document_id:
+                filters["document_id"] = document_id
+            if dataset_id:
+                filters["dataset_id"] = dataset_id
+            if status:
+                filters["status"] = status
+
+            # Calculate skip
+            skip = (page - 1) * page_size
+
+            # Get total count
+            if filters:
+                total = await DocumentPipelineRun.find(filters).count()
+                runs = await DocumentPipelineRun.find(filters).sort("-created_at").skip(skip).limit(page_size).to_list()
+            else:
+                total = await DocumentPipelineRun.count()
+                runs = await DocumentPipelineRun.find_all().sort("-created_at").skip(skip).limit(page_size).to_list()
+
+            return runs, total
+
+        except Exception as e:
+            logger.error(f"Failed to get paginated runs: {e}")
+            raise ValidationException(f"Failed to get pipeline runs: {str(e)}")

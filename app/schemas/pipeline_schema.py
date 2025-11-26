@@ -51,3 +51,32 @@ class TriggerPipelinesResponse(BaseModel):
 
     class Config:
         populate_by_name = True
+
+
+class DocumentPipelineRunResponse(BaseModel):
+    """Response schema for a single document pipeline run"""
+
+    id: PydanticObjectId = Field(..., serialization_alias="_id")
+    document_id: PydanticObjectId = Field(..., serialization_alias="documentId")
+    dataset_id: PydanticObjectId = Field(..., serialization_alias="datasetId")
+    pipeline_id: str = Field(..., serialization_alias="pipelineId")
+    status: ProcessingStatus
+    error_message: str | None = Field(default=None, serialization_alias="errorMessage")
+    created_at: datetime = Field(..., serialization_alias="createdAt")
+    updated_at: datetime = Field(..., serialization_alias="updatedAt")
+
+    class Config:
+        populate_by_name = True
+
+
+class PaginatedPipelineRunsResponse(BaseModel):
+    """Paginated response for document pipeline runs"""
+
+    items: list[DocumentPipelineRunResponse]
+    total: int
+    page: int
+    page_size: int = Field(..., serialization_alias="pageSize")
+    total_pages: int = Field(..., serialization_alias="totalPages")
+
+    class Config:
+        populate_by_name = True
