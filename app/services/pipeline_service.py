@@ -328,8 +328,6 @@ async def _call_langflow_pipeline(
     headers = {
         "Content-Type": "application/json",
         "x-api-key": settings.PIPELINE_API_KEY,
-        "X-LANGFLOW-GLOBAL-VAR-AZURE_OPENAI_EMBEDDING_API_KEY": settings.X_LANGFLOW_GLOBAL_VAR_AZURE_OPENAI_EMBEDDING_API_KEY,
-        "X-LANGFLOW-GLOBAL-VAR-QUADRANT_API_KEY": settings.X_LANGFLOW_GLOBAL_VAR_QDRANT_API_KEY,
     }
 
     try:
