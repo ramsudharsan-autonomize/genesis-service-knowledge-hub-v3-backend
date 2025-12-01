@@ -20,9 +20,9 @@ router = APIRouter()
 
 
 @router.get(
-    "/{dataset_id}/pipelines",
+    "/{dataset_id}/linked_pipelines",
     response_model=DatasetPipelinesResponse,
-    summary="Get all pipelines attached to a dataset",
+    summary="Get all pipelines linked to a dataset",
 )
 async def get_dataset_pipelines(
     dataset_id: PydanticObjectId,
@@ -43,26 +43,26 @@ async def get_dataset_pipelines(
         )
         return response
     except Exception as e:
-        handle_exception(e, "retrieving pipelines for the dataset")
+        handle_exception(e, "retrieving linked pipelines for the dataset")
 
 
 @router.get(
-    "/",
+    "/{dataset_id}/unlinked_pipelines",
     response_model=list[PipelineInfo],
-    summary="Get all available pipelines",
+    summary="Get all pipelines not linked to the dataset",
 )
-async def list_pipelines() -> list[PipelineInfo]:
+async def unlinked_pipelines(dataset_id: PydanticObjectId) -> list[PipelineInfo]:
     """
-    Get all available pipelines from LangFlow
+    Get all unlinked pipelines from LangFlow
 
-    Returns a list of all pipelines (excluding components) that can be
-    attached to datasets for document processing.
+    Returns a list of all unlinked pipelines (excluding components) that can be
+    linked to datasets for document processing.
     """
     try:
-        pipelines = await PipelineService.get_all_pipelines()
-        return pipelines
+        unlinked_pipelines = await PipelineService.get_all_unlinked_pipelines(dataset_id)
+        return unlinked_pipelines
     except Exception as e:
-        handle_exception(e, "retrieving pipelines")
+        handle_exception(e, "retrieving unlinked pipelines")
 
 
 @router.get(

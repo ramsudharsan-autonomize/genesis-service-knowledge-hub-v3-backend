@@ -21,36 +21,9 @@ class PipelineService:
     """Service for triggering, populating and everything related to document processing pipelines"""
 
     @staticmethod
-    async def get_pipelines_by_dataset(dataset_id: PydanticObjectId) -> tuple[Dataset, list[PipelineInfo]]:
+    async def get_all_unlinked_pipelines(dataset_id: PydanticObjectId) -> list[PipelineInfo]:
         """
-        Get all pipelines attached to a dataset with detailed info
-
-        Args:
-            dataset_id: Dataset ID
-
-        Returns:
-            Tuple of (dataset, list of pipeline details)
-
-        Raises:
-            DatasetNotFoundException: If dataset not found
-        """
-        dataset = await DatasetService.get_dataset_by_id(dataset_id)
-
-        # Fetch pipeline details from LangFlow
-        pipelines = []
-        if dataset.pipeline_ids:
-            try:
-                pipelines = await PipelineService.get_pipelines_by_ids(dataset.pipeline_ids)
-            except Exception as e:
-                logger.error(f"Failed to fetch pipeline details: {str(e)}")
-                # Return empty pipelines list but don't fail the request
-
-        return dataset, pipelines
-
-    @staticmethod
-    async def get_all_pipelines() -> list[PipelineInfo]:
-        """
-        Get all available pipelines from LangFlow.
+        Get all unlinked pipelines from LangFlow.
 
         Returns:
             List of pipeline information objects
@@ -60,15 +33,19 @@ class PipelineService:
             "x-api-key": settings.PIPELINE_API_KEY,
             "Accept-Encoding": "gzip, deflate",
         }
+        dataset = await DatasetService.get_dataset_by_id(dataset_id)
 
         async with httpx.AsyncClient(timeout=30.0) as client:
             try:
                 logger.info("Fetching all pipelines from LangFlow")
-                response = await client.get(url, headers=headers)
-                response.raise_for_status()
-
-                flows = response.json()
-                pipelines = [
+                all_pipelines_response, dataset_pipelines = await asyncio.gather(
+                    client.get(url, headers=headers),
+                    PipelineService.get_dataset_pipelines(dataset),
+                )
+                all_pipelines_response.raise_for_status()
+                linked_pipeline_ids = {p.id for p in dataset_pipelines}
+                flows = all_pipelines_response.json()
+                unlinked_pipelines = [
                     PipelineInfo(
                         id=flow["id"],
                         name=flow.get("name", ""),
@@ -79,11 +56,11 @@ class PipelineService:
                         updated_at=flow.get("updated_at"),
                     )
                     for flow in flows
-                    if not flow.get("is_component", False)  # Filter out components
+                    if flow["id"] not in linked_pipeline_ids
                 ]
 
-                logger.info(f"Retrieved {len(pipelines)} pipelines")
-                return pipelines
+                logger.info(f"Retrieved {len(unlinked_pipelines)} pipelines")
+                return unlinked_pipelines
 
             except httpx.HTTPStatusError as e:
                 logger.error(f"Failed to fetch pipelines: {e.response.status_code}")
@@ -137,6 +114,50 @@ class PipelineService:
             except Exception as e:
                 logger.error(f"Error fetching pipeline {pipeline_id}: {str(e)}")
                 raise
+
+    @staticmethod
+    async def get_pipelines_by_dataset(dataset_id: PydanticObjectId) -> tuple[Dataset, list[PipelineInfo]]:
+        """
+        Get all pipelines attached to a dataset with detailed info
+
+        Args:
+            dataset_id: Dataset ID
+
+        Returns:
+            Tuple of (dataset, list of pipeline details)
+
+        Raises:
+            DatasetNotFoundException: If dataset not found
+        """
+        dataset = await DatasetService.get_dataset_by_id(dataset_id)
+        pipelines = DatasetService.get_dataset_pipelines(dataset)
+        return dataset, pipelines
+
+    @staticmethod
+    async def get_dataset_pipelines(dataset: Dataset) -> list[PipelineInfo]:
+        """
+        Get all pipelines attached to a dataset with detailed info
+
+        Args:
+            dataset: Dataset object
+
+        Returns:
+            List of pipeline details
+
+        Raises:
+            DatasetNotFoundException: If dataset not found
+        """
+        # Fetch pipeline details from LangFlow
+        pipelines = []
+
+        if dataset.pipeline_ids:
+            try:
+                pipelines = await PipelineService.get_pipelines_by_ids(dataset.pipeline_ids)
+            except Exception as e:
+                logger.error(f"Failed to fetch pipeline details: {str(e)}")
+                # Return empty pipelines list but don't fail the request
+
+        return pipelines
 
     @staticmethod
     async def get_pipelines_by_ids(pipeline_ids: list[str]) -> list[PipelineInfo]:
