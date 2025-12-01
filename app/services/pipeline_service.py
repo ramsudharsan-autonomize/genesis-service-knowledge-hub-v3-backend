@@ -40,7 +40,7 @@ class PipelineService:
                 logger.info("Fetching all pipelines from LangFlow")
                 all_pipelines_response, dataset_pipelines = await asyncio.gather(
                     client.get(url, headers=headers),
-                    PipelineService.get_dataset_pipelines(dataset),
+                    get_dataset_pipelines(dataset),
                 )
                 all_pipelines_response.raise_for_status()
                 linked_pipeline_ids = {p.id for p in dataset_pipelines}
@@ -130,34 +130,8 @@ class PipelineService:
             DatasetNotFoundException: If dataset not found
         """
         dataset = await DatasetService.get_dataset_by_id(dataset_id)
-        pipelines = DatasetService.get_dataset_pipelines(dataset)
+        pipelines = await get_dataset_pipelines(dataset)
         return dataset, pipelines
-
-    @staticmethod
-    async def get_dataset_pipelines(dataset: Dataset) -> list[PipelineInfo]:
-        """
-        Get all pipelines attached to a dataset with detailed info
-
-        Args:
-            dataset: Dataset object
-
-        Returns:
-            List of pipeline details
-
-        Raises:
-            DatasetNotFoundException: If dataset not found
-        """
-        # Fetch pipeline details from LangFlow
-        pipelines = []
-
-        if dataset.pipeline_ids:
-            try:
-                pipelines = await PipelineService.get_pipelines_by_ids(dataset.pipeline_ids)
-            except Exception as e:
-                logger.error(f"Failed to fetch pipeline details: {str(e)}")
-                # Return empty pipelines list but don't fail the request
-
-        return pipelines
 
     @staticmethod
     async def get_pipelines_by_ids(pipeline_ids: list[str]) -> list[PipelineInfo]:
@@ -370,3 +344,29 @@ async def _call_langflow_pipeline(
     except Exception as e:
         logger.error(f"Pipeline {pipeline_id} error for session {run_id}: {e}")
         raise
+
+
+async def get_dataset_pipelines(dataset: Dataset) -> list[PipelineInfo]:
+    """
+    Get all pipelines attached to a dataset with detailed info
+
+    Args:
+        dataset: Dataset object
+
+    Returns:
+        List of pipeline details
+
+    Raises:
+        DatasetNotFoundException: If dataset not found
+    """
+    # Fetch pipeline details from LangFlow
+    pipelines = []
+
+    if dataset.pipeline_ids:
+        try:
+            pipelines = await PipelineService.get_pipelines_by_ids(dataset.pipeline_ids)
+        except Exception as e:
+            logger.error(f"Failed to fetch pipeline details: {str(e)}")
+            # Return empty pipelines list but don't fail the request
+
+    return pipelines
